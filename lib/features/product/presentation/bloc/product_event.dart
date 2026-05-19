@@ -14,24 +14,24 @@ class ProductImageCaptured extends ProductEvent {
   ProductImageCaptured(this.image);
 }
 
-class BarcodeImageCaptured extends ProductEvent {
-  final File image;
-  BarcodeImageCaptured(this.image);
-}
-
 class IngredientsImageCaptured extends ProductEvent {
   final File image;
   IngredientsImageCaptured(this.image);
 }
 
+class NutritionImageCaptured extends ProductEvent {
+  final File image;
+  NutritionImageCaptured(this.image);
+}
+
 class SubmitProduct extends ProductEvent {
   final File productImage;
-  final File barcodeImage;
   final File ingredientsImage;
+  final File nutritionImage;
   SubmitProduct({
     required this.productImage,
-    required this.barcodeImage,
     required this.ingredientsImage,
+    required this.nutritionImage,
   });
 }
 

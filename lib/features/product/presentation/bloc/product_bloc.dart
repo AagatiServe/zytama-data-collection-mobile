@@ -12,15 +12,15 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
 
   String? _barcode;
   File? _productImage;
-  File? _barcodeImage;
+  File? _ingredientsImage;
 
   ProductBloc(this.checkBarcodeUseCase, this.uploadProductUseCase)
       : super(ProductInitial()) {
     on<ScanBarcodeRequested>(_onScanBarcodeRequested);
     on<BarcodeScanned>(_onBarcodeScanned);
     on<ProductImageCaptured>(_onProductImageCaptured);
-    on<BarcodeImageCaptured>(_onBarcodeImageCaptured);
     on<IngredientsImageCaptured>(_onIngredientsImageCaptured);
+    on<NutritionImageCaptured>(_onNutritionImageCaptured);
     on<SubmitProduct>(_onSubmitProduct);
     on<ResetProduct>(_onResetProduct);
   }
@@ -37,8 +37,12 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     _barcode = event.barcode;
     emit(ProductChecking(event.barcode));
     try {
-      final exists = await checkBarcodeUseCase(event.barcode);
-      emit(exists ? ProductExists(event.barcode) : ProductNotExists(event.barcode));
+      final result = await checkBarcodeUseCase(event.barcode);
+      emit(result.found
+          ? ProductExists(event.barcode,
+              message: result.message,
+              productImageUrl: result.productImageUrl)
+          : ProductNotExists(event.barcode));
     } catch (e) {
       emit(ProductError(e.toString().replaceAll('Exception: ', '')));
     }
@@ -49,25 +53,25 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     Emitter<ProductState> emit,
   ) {
     _productImage = event.image;
-    emit(CapturingBarcodeImage(_barcode!, event.image));
-  }
-
-  void _onBarcodeImageCaptured(
-    BarcodeImageCaptured event,
-    Emitter<ProductState> emit,
-  ) {
-    _barcodeImage = event.image;
-    emit(CapturingIngredientsImage(_barcode!, _productImage!, event.image));
+    emit(CapturingIngredientsImage(_barcode!, event.image));
   }
 
   void _onIngredientsImageCaptured(
     IngredientsImageCaptured event,
     Emitter<ProductState> emit,
   ) {
+    _ingredientsImage = event.image;
+    emit(CapturingNutritionImage(_barcode!, _productImage!, event.image));
+  }
+
+  void _onNutritionImageCaptured(
+    NutritionImageCaptured event,
+    Emitter<ProductState> emit,
+  ) {
     emit(ReadyToReview(
       _barcode!,
       _productImage!,
-      _barcodeImage!,
+      _ingredientsImage!,
       event.image,
     ));
   }
@@ -81,8 +85,8 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
       final message = await uploadProductUseCase(
         barcode: _barcode!,
         productImage: event.productImage,
-        barcodeImage: event.barcodeImage,
         ingredientsImage: event.ingredientsImage,
+        nutritionImage: event.nutritionImage,
       );
       emit(ProductUploadSuccess(message));
     } catch (e) {
@@ -93,7 +97,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
   void _onResetProduct(ResetProduct event, Emitter<ProductState> emit) {
     _barcode = null;
     _productImage = null;
-    _barcodeImage = null;
+    _ingredientsImage = null;
     emit(ProductInitial());
   }
 }

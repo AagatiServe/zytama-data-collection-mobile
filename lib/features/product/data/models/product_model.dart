@@ -1,14 +1,23 @@
 class ProductCheckModel {
-  final bool exists;
+  final bool found;
   final String? message;
+  final String? productImageUrl;
 
-  const ProductCheckModel({required this.exists, this.message});
+  const ProductCheckModel({
+    required this.found,
+    this.message,
+    this.productImageUrl,
+  });
 
-  factory ProductCheckModel.fromJson(Map<String, dynamic> json) =>
-      ProductCheckModel(
-        exists: json['exists'] as bool,
-        message: json['message'] as String?,
-      );
+  factory ProductCheckModel.fromJson(Map<String, dynamic> json) {
+    final data = json['data'] as Map<String, dynamic>?;
+    final product = data?['product'] as Map<String, dynamic>?;
+    return ProductCheckModel(
+      found: data?['found'] as bool? ?? false,
+      message: json['message'] as String?,
+      productImageUrl: product?['product_image'] as String?,
+    );
+  }
 }
 
 class UploadResponseModel {

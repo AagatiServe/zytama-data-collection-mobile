@@ -8,13 +8,13 @@ class UploadProductUseCase {
   Future<String> call({
     required String barcode,
     required File productImage,
-    required File barcodeImage,
     required File ingredientsImage,
+    required File nutritionImage,
   }) =>
       repository.uploadProduct(
         barcode: barcode,
         productImage: productImage,
-        barcodeImage: barcodeImage,
         ingredientsImage: ingredientsImage,
+        nutritionImage: nutritionImage,
       );
 }

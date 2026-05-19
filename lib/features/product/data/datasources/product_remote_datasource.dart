@@ -9,8 +9,8 @@ abstract class ProductRemoteDataSource {
   Future<UploadResponseModel> uploadProduct({
     required String barcode,
     required File productImage,
-    required File barcodeImage,
     required File ingredientsImage,
+    required File nutritionImage,
   });
 }
 
@@ -39,8 +39,8 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
   Future<UploadResponseModel> uploadProduct({
     required String barcode,
     required File productImage,
-    required File barcodeImage,
     required File ingredientsImage,
+    required File nutritionImage,
   }) async {
     try {
       final formData = FormData.fromMap({
@@ -49,13 +49,13 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
           productImage.path,
           filename: 'front_image.jpg',
         ),
-        'barcode_image': await MultipartFile.fromFile(
-          barcodeImage.path,
-          filename: 'barcode_image.jpg',
-        ),
         'ingredients_image': await MultipartFile.fromFile(
           ingredientsImage.path,
           filename: 'ingredients_image.jpg',
+        ),
+        'nutrition_image': await MultipartFile.fromFile(
+          nutritionImage.path,
+          filename: 'nutrition_image.jpg',
         ),
       });
 

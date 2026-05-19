@@ -13,7 +13,9 @@ class ProductChecking extends ProductState {
 
 class ProductExists extends ProductState {
   final String barcode;
-  ProductExists(this.barcode);
+  final String? message;
+  final String? productImageUrl;
+  ProductExists(this.barcode, {this.message, this.productImageUrl});
 }
 
 class ProductNotExists extends ProductState {
@@ -21,29 +23,29 @@ class ProductNotExists extends ProductState {
   ProductNotExists(this.barcode);
 }
 
-class CapturingBarcodeImage extends ProductState {
-  final String barcode;
-  final File productImage;
-  CapturingBarcodeImage(this.barcode, this.productImage);
-}
-
 class CapturingIngredientsImage extends ProductState {
   final String barcode;
   final File productImage;
-  final File barcodeImage;
-  CapturingIngredientsImage(this.barcode, this.productImage, this.barcodeImage);
+  CapturingIngredientsImage(this.barcode, this.productImage);
+}
+
+class CapturingNutritionImage extends ProductState {
+  final String barcode;
+  final File productImage;
+  final File ingredientsImage;
+  CapturingNutritionImage(this.barcode, this.productImage, this.ingredientsImage);
 }
 
 class ReadyToReview extends ProductState {
   final String barcode;
   final File productImage;
-  final File barcodeImage;
   final File ingredientsImage;
+  final File nutritionImage;
   ReadyToReview(
     this.barcode,
     this.productImage,
-    this.barcodeImage,
     this.ingredientsImage,
+    this.nutritionImage,
   );
 }
 

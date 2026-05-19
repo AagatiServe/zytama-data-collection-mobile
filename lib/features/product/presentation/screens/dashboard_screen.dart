@@ -144,7 +144,21 @@ class _DashboardScreenState extends State<DashboardScreen>
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('This product is already in the database.'),
+                      if (state.productImageUrl != null) ...[
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.network(
+                            state.productImageUrl!,
+                            height: 160,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const SizedBox(),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      Text(state.message ??
+                          'This product is already in the database.'),
                       const SizedBox(height: 8),
                       _BarcodeChip(barcode: state.barcode),
                     ],
@@ -163,7 +177,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             } else if (state is ProductNotExists) {
               await _capture(
                 stepNumber: 1,
-                label: 'Front Photo',
+                label: 'Product Photo',
                 instruction: 'Photograph the front of the product',
                 barcode: state.barcode,
                 icon: Icons.inventory_2_rounded,
@@ -171,29 +185,29 @@ class _DashboardScreenState extends State<DashboardScreen>
                 onCaptured: (f) =>
                     context.read<ProductBloc>().add(ProductImageCaptured(f)),
               );
-            } else if (state is CapturingBarcodeImage) {
-              await _capture(
-                stepNumber: 2,
-                label: 'Barcode Photo',
-                instruction: 'Photograph the barcode on the product',
-                barcode: null,
-                icon: Icons.qr_code_rounded,
-                iconColor: Colors.deepPurple,
-                onCaptured: (f) => context
-                    .read<ProductBloc>()
-                    .add(BarcodeImageCaptured(f)),
-              );
             } else if (state is CapturingIngredientsImage) {
               await _capture(
-                stepNumber: 3,
+                stepNumber: 2,
                 label: 'Ingredients Photo',
                 instruction: 'Photograph the ingredients label',
                 barcode: null,
                 icon: Icons.list_alt_rounded,
-                iconColor: Colors.orange,
+                iconColor: Colors.deepPurple,
                 onCaptured: (f) => context
                     .read<ProductBloc>()
                     .add(IngredientsImageCaptured(f)),
+              );
+            } else if (state is CapturingNutritionImage) {
+              await _capture(
+                stepNumber: 3,
+                label: 'Nutrition Photo',
+                instruction: 'Photograph the nutrition facts label',
+                barcode: null,
+                icon: Icons.restaurant_menu_rounded,
+                iconColor: Colors.orange,
+                onCaptured: (f) => context
+                    .read<ProductBloc>()
+                    .add(NutritionImageCaptured(f)),
               );
             } else if (state is ReadyToReview) {
               final capturedBarcode = state.barcode;
@@ -202,8 +216,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                   builder: (_) => ProductReviewScreen(
                     barcode: capturedBarcode,
                     initialProductImage: state.productImage,
-                    initialBarcodeImage: state.barcodeImage,
                     initialIngredientsImage: state.ingredientsImage,
+                    initialNutritionImage: state.nutritionImage,
                     onSuccess: () => setState(() {
                       _scanCount++;
                       _recentScans.insert(

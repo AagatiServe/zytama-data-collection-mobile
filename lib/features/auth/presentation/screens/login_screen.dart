@@ -31,6 +31,14 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscure = true;
   bool _remember = false;
 
+  initState() {
+    super.initState();
+    _emailCtrl.text =
+        'devag1-0001@zytama.com'; // Optionally, load saved email here
+    _passCtrl.text = 'TestPassword@456';
+    // Optionally, load saved email/remember state here
+  }
+
   @override
   void dispose() {
     _emailCtrl.dispose();

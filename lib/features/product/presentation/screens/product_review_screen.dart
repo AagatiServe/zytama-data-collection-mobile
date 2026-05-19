@@ -7,16 +7,16 @@ import '../bloc/product_bloc.dart';
 class ProductReviewScreen extends StatefulWidget {
   final String barcode;
   final File initialProductImage;
-  final File initialBarcodeImage;
   final File initialIngredientsImage;
+  final File initialNutritionImage;
   final VoidCallback onSuccess;
 
   const ProductReviewScreen({
     super.key,
     required this.barcode,
     required this.initialProductImage,
-    required this.initialBarcodeImage,
     required this.initialIngredientsImage,
+    required this.initialNutritionImage,
     required this.onSuccess,
   });
 
@@ -26,16 +26,16 @@ class ProductReviewScreen extends StatefulWidget {
 
 class _ProductReviewScreenState extends State<ProductReviewScreen> {
   late File _productImage;
-  late File _barcodeImage;
   late File _ingredientsImage;
+  late File _nutritionImage;
   final _picker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
     _productImage = widget.initialProductImage;
-    _barcodeImage = widget.initialBarcodeImage;
     _ingredientsImage = widget.initialIngredientsImage;
+    _nutritionImage = widget.initialNutritionImage;
   }
 
   Future<void> _replaceImage(int index) async {
@@ -50,9 +50,9 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
         case 0:
           _productImage = File(x.path);
         case 1:
-          _barcodeImage = File(x.path);
-        case 2:
           _ingredientsImage = File(x.path);
+        case 2:
+          _nutritionImage = File(x.path);
       }
     });
   }
@@ -149,8 +149,8 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
   void _submit() {
     context.read<ProductBloc>().add(SubmitProduct(
           productImage: _productImage,
-          barcodeImage: _barcodeImage,
           ingredientsImage: _ingredientsImage,
+          nutritionImage: _nutritionImage,
         ));
   }
 
@@ -220,21 +220,22 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
                     ),
                     const SizedBox(height: 12),
                     _ImageCard(
-                      label: 'Barcode Image',
-                      stepColor: Colors.deepPurple,
-                      stepIcon: Icons.qr_code_rounded,
-                      image: _barcodeImage,
-                      onTap: () => _viewImage(_barcodeImage, 'Barcode Image'),
-                      onReplace: uploading ? null : () => _replaceImage(1),
-                    ),
-                    const SizedBox(height: 12),
-                    _ImageCard(
                       label: 'Ingredients Image',
-                      stepColor: Colors.orange,
+                      stepColor: Colors.deepPurple,
                       stepIcon: Icons.list_alt_rounded,
                       image: _ingredientsImage,
                       onTap: () =>
                           _viewImage(_ingredientsImage, 'Ingredients Image'),
+                      onReplace: uploading ? null : () => _replaceImage(1),
+                    ),
+                    const SizedBox(height: 12),
+                    _ImageCard(
+                      label: 'Nutrition Image',
+                      stepColor: Colors.orange,
+                      stepIcon: Icons.restaurant_menu_rounded,
+                      image: _nutritionImage,
+                      onTap: () =>
+                          _viewImage(_nutritionImage, 'Nutrition Image'),
                       onReplace: uploading ? null : () => _replaceImage(2),
                     ),
                   ],
