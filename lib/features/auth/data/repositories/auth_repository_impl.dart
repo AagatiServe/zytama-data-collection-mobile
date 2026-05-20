@@ -45,9 +45,6 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> logout() async {
-    await prefs.remove(AppConstants.tokenKey);
-    await prefs.remove(AppConstants.userNameKey);
-    await prefs.remove(AppConstants.userEmailKey);
-    await prefs.remove(AppConstants.agentCodeKey);
+    await prefs.clear();
   }
 }

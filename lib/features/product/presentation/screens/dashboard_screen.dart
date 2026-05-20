@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:zytama_data/core/constants/app_colors.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:zytama_data/features/auth/presentation/bloc/auth_bloc.dart';
 import '../bloc/product_bloc.dart';
@@ -32,24 +34,65 @@ class _DashboardScreenState extends State<DashboardScreen>
   final List<_ScanEntry> _recentScans = [];
 
   late final AnimationController _pulseCtrl;
+  late final AnimationController _entryCtrl;
+  late final Animation<double> _headerFade;
+  late final Animation<Offset> _headerSlide;
+  late final Animation<double> _ringFade;
+  late final Animation<double> _ringProgress;
+  late final Animation<double> _cardFade;
+  late final Animation<double> _cardScale;
+  late final Animation<double> _btnFade;
+  late final Animation<Offset> _btnSlide;
 
   @override
   void initState() {
     super.initState();
-    _pulseCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 4),
-    )..repeat(reverse: true);
+    _pulseCtrl =
+        AnimationController(vsync: this, duration: const Duration(seconds: 4))
+          ..repeat(reverse: true);
+    _entryCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1400));
+
+    _headerFade = CurvedAnimation(
+        parent: _entryCtrl,
+        curve: const Interval(0.0, 0.45, curve: Curves.easeOut));
+    _headerSlide = Tween<Offset>(begin: const Offset(0, -0.4), end: Offset.zero)
+        .animate(CurvedAnimation(
+            parent: _entryCtrl,
+            curve: const Interval(0.0, 0.5, curve: Curves.easeOut)));
+
+    _ringFade = CurvedAnimation(
+        parent: _entryCtrl,
+        curve: const Interval(0.15, 0.55, curve: Curves.easeOut));
+    _ringProgress = CurvedAnimation(
+        parent: _entryCtrl,
+        curve: const Interval(0.25, 1.0, curve: Curves.easeInOut));
+
+    _cardFade = CurvedAnimation(
+        parent: _entryCtrl,
+        curve: const Interval(0.45, 0.75, curve: Curves.easeOut));
+    _cardScale = Tween<double>(begin: 0.7, end: 1.0).animate(CurvedAnimation(
+        parent: _entryCtrl,
+        curve: const Interval(0.45, 0.85, curve: Curves.elasticOut)));
+
+    _btnFade = CurvedAnimation(
+        parent: _entryCtrl,
+        curve: const Interval(0.60, 0.90, curve: Curves.easeOut));
+    _btnSlide = Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero)
+        .animate(CurvedAnimation(
+            parent: _entryCtrl,
+            curve: const Interval(0.60, 1.0, curve: Curves.easeOut)));
+
+    _entryCtrl.forward();
     WidgetsBinding.instance.addPostFrameCallback((_) => _openScanner());
   }
 
   @override
   void dispose() {
     _pulseCtrl.dispose();
+    _entryCtrl.dispose();
     super.dispose();
   }
-
-  // ── Scanner ───────────────────────────────────────────────────────────────
 
   Future<void> _openScanner() async {
     if (!mounted) return;
@@ -62,8 +105,6 @@ class _DashboardScreenState extends State<DashboardScreen>
         ? context.read<ProductBloc>().add(BarcodeScanned(barcode))
         : context.read<ProductBloc>().add(ResetProduct());
   }
-
-  // ── Image capture helpers ─────────────────────────────────────────────────
 
   Future<void> _capture({
     required String label,
@@ -107,25 +148,24 @@ class _DashboardScreenState extends State<DashboardScreen>
     }
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
+    final sz = MediaQuery.sizeOf(context);
+    final heroH = sz.height * 0.60;
+    // Ring fills available space inside hero after header + badge + paddings
+    final ringSize = (heroH - 148).clamp(160.0, 240.0);
+
     return MultiBlocListener(
       listeners: [
-        // Auth
         BlocListener<AuthBloc, AuthState>(
           listener: (context, state) {
             if (state is AuthUnauthenticated) {
               Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const LoginScreen()),
-                (r) => false,
-              );
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (r) => false);
             }
           },
         ),
-
-        // Product flow
         BlocListener<ProductBloc, ProductState>(
           listener: (context, state) async {
             if (state is ProductExists) {
@@ -147,13 +187,11 @@ class _DashboardScreenState extends State<DashboardScreen>
                       if (state.productImageUrl != null) ...[
                         ClipRRect(
                           borderRadius: BorderRadius.circular(10),
-                          child: Image.network(
-                            state.productImageUrl!,
-                            height: 160,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => const SizedBox(),
-                          ),
+                          child: Image.network(state.productImageUrl!,
+                              height: 160,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const SizedBox()),
                         ),
                         const SizedBox(height: 12),
                       ],
@@ -165,9 +203,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                   ),
                   actions: [
                     ElevatedButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('OK'),
-                    ),
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('OK')),
                   ],
                 ),
               );
@@ -205,34 +242,28 @@ class _DashboardScreenState extends State<DashboardScreen>
                 barcode: null,
                 icon: Icons.restaurant_menu_rounded,
                 iconColor: Colors.orange,
-                onCaptured: (f) => context
-                    .read<ProductBloc>()
-                    .add(NutritionImageCaptured(f)),
+                onCaptured: (f) =>
+                    context.read<ProductBloc>().add(NutritionImageCaptured(f)),
               );
             } else if (state is ReadyToReview) {
-              final capturedBarcode = state.barcode;
-              await Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => ProductReviewScreen(
-                    barcode: capturedBarcode,
-                    initialProductImage: state.productImage,
-                    initialIngredientsImage: state.ingredientsImage,
-                    initialNutritionImage: state.nutritionImage,
-                    onSuccess: () => setState(() {
-                      _scanCount++;
-                      _recentScans.insert(
-                          0,
-                          _ScanEntry(
-                              barcode: capturedBarcode,
-                              time: DateTime.now()));
-                      if (_recentScans.length > 10) _recentScans.removeLast();
-                    }),
-                  ),
+              final cb = state.barcode;
+              await Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => ProductReviewScreen(
+                  barcode: cb,
+                  initialProductImage: state.productImage,
+                  initialIngredientsImage: state.ingredientsImage,
+                  initialNutritionImage: state.nutritionImage,
+                  onSuccess: () => setState(() {
+                    _scanCount++;
+                    _recentScans.insert(
+                        0, _ScanEntry(barcode: cb, time: DateTime.now()));
+                    if (_recentScans.length > 10) _recentScans.removeLast();
+                  }),
                 ),
-              );
+              ));
               if (!context.mounted) return;
-              final s = context.read<ProductBloc>().state;
-              if (s is ProductInitial) _openScanner();
+              if (context.read<ProductBloc>().state is ProductInitial)
+                _openScanner();
             } else if (state is ProductError) {
               await showDialog(
                 context: context,
@@ -248,7 +279,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   actions: [
                     TextButton(
                         onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('OK')),
+                        child: const Text('OK'))
                   ],
                 ),
               );
@@ -260,96 +291,279 @@ class _DashboardScreenState extends State<DashboardScreen>
         ),
       ],
       child: Scaffold(
-        backgroundColor: const Color(0xFFF3FAFF),
+        backgroundColor: AppColors.dashBg,
         body: Stack(
           children: [
-            // Mesh blobs
+            // ── Background blobs (below-hero area) ──────────────────────
             Positioned(
-              top: -80,
-              left: -60,
-              child: Container(
-                width: 280,
-                height: 280,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFFA3F69C).withValues(alpha: 0.18),
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: -100,
+              bottom: -60,
               right: -80,
               child: Container(
-                width: 260,
-                height: 260,
+                width: sz.width * 0.75,
+                height: sz.width * 0.75,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFF0d631b).withValues(alpha: 0.05),
+                  gradient: RadialGradient(
+                    colors: [
+                      AppColors.dashTeal.withValues(alpha: 0.12),
+                      Colors.transparent
+                    ],
+                    stops: const [0.0, 0.7],
+                  ),
                 ),
               ),
             ),
-
+            Positioned(
+              bottom: sz.height * 0.1,
+              left: -60,
+              child: Container(
+                width: sz.width * 0.5,
+                height: sz.width * 0.5,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      AppColors.dashTealMid.withValues(alpha: 0.08),
+                      Colors.transparent
+                    ],
+                    stops: const [0.0, 0.7],
+                  ),
+                ),
+              ),
+            ),
+            // ── Main content ─────────────────────────────────────────────
             SafeArea(
-              child: CustomScrollView(
-                slivers: [
-                  // Header
-                  SliverToBoxAdapter(
-                    child: BlocBuilder<AuthBloc, AuthState>(
-                      builder: (context, authState) {
-                        final user = authState is AuthAuthenticated
-                            ? authState.user
-                            : null;
-                        final name = user?.name.isNotEmpty == true
-                            ? user!.name
-                            : 'User';
-                        final agentCode = user?.agentCode.isNotEmpty == true
-                            ? user!.agentCode
-                            : '';
-                        return _Header(
-                          name: name,
-                          agentCode: agentCode,
-                          onNotificationTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const NotificationScreen(),
+              child: Column(
+                children: [
+                  _buildHeroArea(heroH, ringSize),
+                  Expanded(
+                    child: Padding(
+                      padding:
+                          EdgeInsets.fromLTRB(20, 0, 20, sz.height * 0.035),
+                      child: Column(
+                        children: [
+                          SizedBox(
+                              height: sz.height * 0.12), // card overlap space
+                          const Spacer(),
+                          FadeTransition(
+                            opacity: _btnFade,
+                            child: SlideTransition(
+                              position: _btnSlide,
+                              child: BlocBuilder<ProductBloc, ProductState>(
+                                builder: (context, state) {
+                                  final idle = state is ProductInitial ||
+                                      state is ProductScanning;
+                                  return _V3LaunchButton(
+                                    onTap: idle ? _openScanner : null,
+                                    isChecking: state is ProductChecking,
+                                    isUploading: state is ProductUploading,
+                                    screenWidth: sz.width,
+                                  );
+                                },
+                              ),
                             ),
                           ),
-                          onLogoutTap: () => _confirmLogout(context),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // ── Checking overlay ─────────────────────────────────────────
+            BlocBuilder<ProductBloc, ProductState>(
+              builder: (context, state) {
+                if (state is! ProductChecking) return const SizedBox.shrink();
+                return Container(
+                  color: Colors.black.withValues(alpha: 0.55),
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 36, vertical: 28),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.15),
+                              blurRadius: 24,
+                              offset: const Offset(0, 8))
+                        ],
+                      ),
+                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        const CircularProgressIndicator(
+                            color: AppColors.primary, strokeWidth: 3),
+                        const SizedBox(height: 20),
+                        const Text('Checking product…',
+                            style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textDark)),
+                        const SizedBox(height: 6),
+                        Text(state.barcode,
+                            style: const TextStyle(
+                                fontSize: 13,
+                                fontFamily: 'monospace',
+                                color: AppColors.textLight)),
+                      ]),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Hero + overlapping cards ──────────────────────────────────────────────
+
+  Widget _buildHeroArea(double heroH, double ringSize) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        _buildHero(heroH, ringSize),
+        // Cards straddle the hero's rounded bottom (overlap ~36px inside)
+        Positioned(
+          bottom: -80,
+          left: 20,
+          right: 20,
+          child: FadeTransition(
+            opacity: _cardFade,
+            child: AnimatedBuilder(
+              animation: _cardScale,
+              builder: (_, child) =>
+                  Transform.scale(scale: _cardScale.value, child: child!),
+              child: _FloatingCards(
+                  scanCount: _scanCount,
+                  dailyGoal: _dailyGoal,
+                  streak: _streak),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHero(double heroH, double ringSize) {
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(48)),
+      child: Container(
+        height: heroH,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment(-0.4, -1),
+            end: Alignment(0.4, 1),
+            colors: [
+              AppColors.dashTeal,
+              AppColors.dashTealMid,
+              AppColors.dashTealEnd
+            ],
+            stops: [0.0, 0.55, 1.0],
+          ),
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // Decorative arcs
+            Positioned(
+                top: -200,
+                right: -200,
+                child: Container(
+                    width: 460,
+                    height: 460,
+                    decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.10))))),
+            Positioned(
+                top: -160,
+                right: -160,
+                child: Container(
+                    width: 380,
+                    height: 380,
+                    decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.10))))),
+            Positioned(
+                bottom: -120,
+                left: -100,
+                child: Container(
+                    width: 360,
+                    height: 360,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          Colors.white.withValues(alpha: 0.10),
+                          Colors.transparent
+                        ],
+                        stops: const [0.0, 0.7],
+                      ),
+                    ))),
+            // Content — Spacer distributes header to top, ring to center
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  FadeTransition(
+                    opacity: _headerFade,
+                    child: SlideTransition(
+                      position: _headerSlide,
+                      child: BlocBuilder<AuthBloc, AuthState>(
+                        builder: (context, authState) {
+                          final user = authState is AuthAuthenticated
+                              ? authState.user
+                              : null;
+                          final name = user?.name.isNotEmpty == true
+                              ? user!.name
+                              : 'User';
+                          final code = user?.agentCode.isNotEmpty == true
+                              ? user!.agentCode
+                              : '';
+                          return _V3Header(
+                            name: name,
+                            agentCode: code,
+                            onNotificationTap: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                    builder: (_) =>
+                                        const NotificationScreen())),
+                            onLogoutTap: () => _confirmLogout(context),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  FadeTransition(
+                    opacity: _ringFade,
+                    child: AnimatedBuilder(
+                      animation: _entryCtrl,
+                      builder: (_, __) {
+                        final progress = (_dailyGoal > 0
+                                ? (_scanCount / _dailyGoal).clamp(0.0, 1.0)
+                                : 0.0) *
+                            _ringProgress.value;
+                        return Column(
+                          children: [
+                            const _LiveBadge(),
+                            const SizedBox(height: 12),
+                            _V3Ring(
+                              size: ringSize,
+                              scanCount: _scanCount,
+                              dailyGoal: _dailyGoal,
+                              pulseCtrl: _pulseCtrl,
+                              progress: progress,
+                            ),
+                          ],
                         );
                       },
                     ),
                   ),
-
-                  // Circular progress ring
-                  SliverToBoxAdapter(
-                    child: _ProgressSection(
-                      scanCount: _scanCount,
-                      dailyGoal: _dailyGoal,
-                      streak: _streak,
-                      pulseCtrl: _pulseCtrl,
-                    ),
-                  ),
-
-                  // Launch button
-                  SliverToBoxAdapter(
-                    child: BlocBuilder<ProductBloc, ProductState>(
-                      builder: (context, state) {
-                        final idle = state is ProductInitial ||
-                            state is ProductScanning;
-                        return _LaunchButton(
-                          onTap: idle ? _openScanner : null,
-                          isChecking: state is ProductChecking,
-                          isUploading: state is ProductUploading,
-                        );
-                      },
-                    ),
-                  ),
-
-                  // Recent scans
-                  SliverToBoxAdapter(
-                    child: _RecentScansSection(scans: _recentScans),
-                  ),
-
-                  const SliverToBoxAdapter(child: SizedBox(height: 48)),
+                  const Spacer(),
                 ],
               ),
             ),
@@ -372,20 +586,18 @@ class _DashboardScreenState extends State<DashboardScreen>
         content: const Text('Are you sure you want to sign out?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
               context.read<AuthBloc>().add(LogoutRequested());
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-            ),
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10))),
             child: const Text('Logout'),
           ),
         ],
@@ -396,668 +608,637 @@ class _DashboardScreenState extends State<DashboardScreen>
 
 // ── Header ────────────────────────────────────────────────────────────────────
 
-class _Header extends StatelessWidget {
+class _V3Header extends StatelessWidget {
   final String name;
   final String agentCode;
   final VoidCallback onNotificationTap;
   final VoidCallback onLogoutTap;
 
-  const _Header({
-    required this.name,
-    required this.agentCode,
-    required this.onNotificationTap,
-    required this.onLogoutTap,
-  });
+  const _V3Header(
+      {required this.name,
+      required this.agentCode,
+      required this.onNotificationTap,
+      required this.onLogoutTap});
 
   @override
   Widget build(BuildContext context) {
     final initial = name.isNotEmpty ? name[0].toUpperCase() : 'U';
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 28, 16, 8),
-      child: Row(
-        children: [
-          // Avatar with check badge
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0d631b).withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFF0d631b), width: 2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF0d631b).withValues(alpha: 0.20),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Center(
-                  child: Text(
-                    initial,
+    return Row(
+      children: [
+        _GlassBox(
+            width: 44,
+            height: 44,
+            radius: 14,
+            child: Center(
+                child: Text(initial,
                     style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF0d631b),
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: -3,
-                right: -3,
-                child: Container(
-                  width: 20,
-                  height: 20,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0d631b),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                        color: const Color(0xFFF3FAFF), width: 2),
-                  ),
-                  child: const Icon(Icons.check_rounded,
-                      color: Colors.white, size: 11),
-                ),
-              ),
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700)))),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (agentCode.isNotEmpty)
+                Text(agentCode,
+                    style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 1.3)),
+              Text('Hello, $name',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700)),
             ],
           ),
-          const SizedBox(width: 16),
-          // Labels
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  agentCode.isNotEmpty ? agentCode : 'AGENT',
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF40493d),
-                    letterSpacing: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Hello, $name',
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF071e27),
-                    height: 1.1,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Notification button
-          _IconBtn(
-            icon: Icons.notifications_outlined,
-            onTap: onNotificationTap,
-          ),
-          const SizedBox(width: 10),
-          // Logout button
-          _IconBtn(
-            icon: Icons.logout_rounded,
-            color: Colors.red.shade400,
-            bgColor: Colors.red.withValues(alpha: 0.08),
-            onTap: onLogoutTap,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Reusable icon button ──────────────────────────────────────────────────────
-
-class _IconBtn extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-  final Color color;
-  final Color bgColor;
-
-  const _IconBtn({
-    required this.icon,
-    required this.onTap,
-    this.color = const Color(0xFF40493d),
-    this.bgColor = const Color(0xFFDBF1FE),
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
         ),
-        child: Icon(icon, color: color, size: 22),
+        GestureDetector(
+          onTap: onNotificationTap,
+          child: _GlassBox(
+              width: 44,
+              height: 44,
+              radius: 14,
+              child: Stack(children: [
+                const Center(
+                    child: Icon(Icons.notifications_outlined,
+                        color: Colors.white, size: 20)),
+                Positioned(
+                    top: 9,
+                    right: 10,
+                    child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColors.dashOrange))),
+              ])),
+        ),
+        const SizedBox(width: 8),
+        GestureDetector(
+          onTap: onLogoutTap,
+          child: _GlassBox(
+              width: 44,
+              height: 44,
+              radius: 14,
+              bgColor: const Color(0x2EFF8A3D),
+              borderColor: const Color(0x59FF8A3D),
+              child: const Center(
+                  child: Icon(Icons.logout_rounded,
+                      color: Color(0xFFFFD0A8), size: 20))),
+        ),
+      ],
+    );
+  }
+}
+
+class _GlassBox extends StatelessWidget {
+  final double width;
+  final double height;
+  final double radius;
+  final Widget child;
+  final Color bgColor;
+  final Color borderColor;
+
+  const _GlassBox({
+    required this.width,
+    required this.height,
+    required this.radius,
+    required this.child,
+    this.bgColor = const Color(0x26FFFFFF),
+    this.borderColor = const Color(0x40FFFFFF),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(radius),
+            border: Border.all(color: borderColor),
+          ),
+          child: child,
+        ),
       ),
     );
   }
 }
 
-// ── Progress Section ──────────────────────────────────────────────────────────
+// ── Live Badge ────────────────────────────────────────────────────────────────
 
-class _ProgressSection extends StatelessWidget {
-  final int scanCount;
-  final int dailyGoal;
-  final int streak;
-  final AnimationController pulseCtrl;
-
-  const _ProgressSection({
-    required this.scanCount,
-    required this.dailyGoal,
-    required this.streak,
-    required this.pulseCtrl,
-  });
+class _LiveBadge extends StatelessWidget {
+  const _LiveBadge();
 
   @override
   Widget build(BuildContext context) {
-    final progress =
-        dailyGoal > 0 ? (scanCount / dailyGoal).clamp(0.0, 1.0) : 0.0;
-    final remaining = (dailyGoal - scanCount).clamp(0, dailyGoal);
-    final percent = (progress * 100).round();
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      child: Column(
-        children: [
-          // Circular ring
-          SizedBox(
-            width: 270,
-            height: 270,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                CustomPaint(
-                  size: const Size(270, 270),
-                  painter: _RingPainter(progress: progress),
-                ),
-                // Animated inner pulse ring
-                AnimatedBuilder(
-                  animation: pulseCtrl,
-                  builder: (_, __) {
-                    final scale = 0.95 + pulseCtrl.value * 0.10;
-                    return Transform.scale(
-                      scale: scale,
-                      child: Container(
-                        width: 195,
-                        height: 195,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: const Color(0xFF0d631b)
-                                .withValues(alpha: 0.18),
-                            width: 1,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                // Center label
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    RichText(
-                      text: TextSpan(
-                        children: [
-                          TextSpan(
-                            text: '$scanCount',
-                            style: const TextStyle(
-                              fontSize: 60,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF0d631b),
-                              height: 1.0,
-                              letterSpacing: -2,
-                            ),
-                          ),
-                          TextSpan(
-                            text: ' / $dailyGoal',
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w500,
-                              color: Color(0xFF40493d),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      "TODAY'S SCANS",
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF40493d),
-                        letterSpacing: 2.0,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(100),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(100),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
           ),
-
-          const SizedBox(height: 28),
-
-          // Streak badge
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFCFE6F2).withValues(alpha: 0.50),
-              borderRadius: BorderRadius.circular(50),
-              border: Border.all(
-                  color: const Color(0xFFBFCABA).withValues(alpha: 0.35)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ShaderMask(
-                  shaderCallback: (bounds) => const LinearGradient(
-                    colors: [Color(0xFFFF5722), Color(0xFFFFC107)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ).createShader(bounds),
-                  child: const Icon(
-                    Icons.local_fire_department_rounded,
-                    color: Colors.white,
-                    size: 26,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  '$streak Day Streak!',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF071e27),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Progress description
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 28),
-            child: RichText(
-              textAlign: TextAlign.center,
-              text: TextSpan(
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF40493d),
-                  height: 1.5,
-                ),
-                children: [
-                  const TextSpan(text: "You're "),
-                  TextSpan(
-                    text: '$percent%',
-                    style: const TextStyle(
-                      color: Color(0xFF0d631b),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const TextSpan(text: ' of the way there! '),
-                  TextSpan(
-                    text: '$remaining more',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  const TextSpan(text: ' to hit your daily target.'),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              width: 6,
+              height: 6,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.dashGlow,
+                boxShadow: [
+                  BoxShadow(color: AppColors.dashGlow, blurRadius: 8)
                 ],
               ),
             ),
-          ),
+            const SizedBox(width: 6),
+            const Text('LIVE · TODAY',
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                    letterSpacing: 1.0)),
+          ]),
+        ),
+      ),
+    );
+  }
+}
 
-          const SizedBox(height: 36),
+// ── Responsive Ring ───────────────────────────────────────────────────────────
+
+class _V3Ring extends StatelessWidget {
+  final double size;
+  final int scanCount;
+  final int dailyGoal;
+  final AnimationController pulseCtrl;
+  final double progress;
+
+  const _V3Ring({
+    required this.size,
+    required this.scanCount,
+    required this.dailyGoal,
+    required this.pulseCtrl,
+    required this.progress,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final countFs = (size * 0.33).clamp(52.0, 78.0);
+    final labelFs = (size * 0.050).clamp(9.0, 12.0);
+    final targetFs = (size * 0.060).clamp(10.0, 14.0);
+
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          CustomPaint(
+              size: Size(size, size),
+              painter: _V3RingPainter(progress: progress, ringSize: size)),
+          // Pulse inner ring
+          AnimatedBuilder(
+            animation: pulseCtrl,
+            builder: (_, __) => Container(
+              width: size * (0.62 + pulseCtrl.value * 0.04),
+              height: size * (0.62 + pulseCtrl.value * 0.04),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                    color: Colors.white
+                        .withValues(alpha: 0.08 + pulseCtrl.value * 0.05)),
+              ),
+            ),
+          ),
+          // Center text
+          Column(mainAxisSize: MainAxisSize.min, children: [
+            Text('COLLECTED',
+                style: TextStyle(
+                    fontSize: labelFs,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white.withValues(alpha: 0.70),
+                    letterSpacing: 1.6)),
+            const SizedBox(height: 2),
+            ShaderMask(
+              shaderCallback: (rect) => const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.white, Color(0xFFC7FAF0)],
+              ).createShader(rect),
+              child: Text('$scanCount',
+                  style: TextStyle(
+                      fontSize: countFs,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      letterSpacing: -3,
+                      height: 1.0)),
+            ),
+            Text('of $dailyGoal target',
+                style: TextStyle(
+                    fontSize: targetFs,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white.withValues(alpha: 0.75))),
+          ]),
         ],
       ),
     );
   }
 }
 
-// ── Ring Painter ──────────────────────────────────────────────────────────────
-
-class _RingPainter extends CustomPainter {
+class _V3RingPainter extends CustomPainter {
   final double progress;
-  const _RingPainter({required this.progress});
+  final double ringSize;
+  const _V3RingPainter({required this.progress, required this.ringSize});
 
   @override
   void paint(Canvas canvas, Size size) {
+    final stroke = (ringSize * 0.064).clamp(10.0, 16.0);
+    final radius = (ringSize - stroke) / 2;
     final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 10;
+    final rect = Rect.fromCircle(center: center, radius: radius);
 
-    // Background track
-    final bgPaint = Paint()
-      ..color = const Color(0xFFCFE6F2).withValues(alpha: 0.40)
-      ..strokeWidth = 14
+    // Track
+    canvas.drawCircle(
+        center,
+        radius,
+        Paint()
+          ..color = Colors.white.withValues(alpha: 0.05)
+          ..style = PaintingStyle.fill);
+    canvas.drawCircle(
+        center,
+        radius,
+        Paint()
+          ..color = Colors.white.withValues(alpha: 0.18)
+          ..strokeWidth = stroke
+          ..style = PaintingStyle.stroke);
+
+    // Tick marks (60, proportional to ring size)
+    final tickMajor = Paint()
+      ..color = Colors.white.withValues(alpha: 0.25)
+      ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
-    canvas.drawCircle(center, radius, bgPaint);
+    final tickMinor = Paint()
+      ..color = Colors.white.withValues(alpha: 0.25)
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke;
+    for (int i = 0; i < 60; i++) {
+      final angle = (i / 60) * 2 * math.pi - math.pi / 2;
+      final r1 = radius - stroke / 2 - ringSize * 0.036;
+      final r2 = r1 - (i % 5 == 0 ? ringSize * 0.028 : ringSize * 0.018);
+      canvas.drawLine(
+        Offset(
+            center.dx + math.cos(angle) * r1, center.dy + math.sin(angle) * r1),
+        Offset(
+            center.dx + math.cos(angle) * r2, center.dy + math.sin(angle) * r2),
+        i % 5 == 0 ? tickMajor : tickMinor,
+      );
+    }
 
     if (progress <= 0) return;
 
-    // Gradient arc
-    final rect = Rect.fromCircle(center: center, radius: radius);
-    final gradient = SweepGradient(
+    final sweep = 2 * math.pi * progress;
+    final shader = SweepGradient(
       startAngle: -math.pi / 2,
       endAngle: 3 * math.pi / 2,
-      colors: const [Color(0xFF1b6d24), Color(0xFF88d982)],
-    );
-    final progressPaint = Paint()
-      ..shader = gradient.createShader(rect)
-      ..strokeWidth = 18
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
+      colors: const [AppColors.dashRingLight, AppColors.dashTeal],
+    ).createShader(rect);
 
+    // Glow pass
     canvas.drawArc(
-      rect,
-      -math.pi / 2,
-      2 * math.pi * progress,
-      false,
-      progressPaint,
-    );
+        rect,
+        -math.pi / 2,
+        sweep,
+        false,
+        Paint()
+          ..shader = shader
+          ..strokeWidth = stroke + 8
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8));
+    // Sharp arc
+    canvas.drawArc(
+        rect,
+        -math.pi / 2,
+        sweep,
+        false,
+        Paint()
+          ..shader = shader
+          ..strokeWidth = stroke
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round);
   }
 
   @override
-  bool shouldRepaint(_RingPainter old) => old.progress != progress;
+  bool shouldRepaint(_V3RingPainter old) =>
+      old.progress != progress || old.ringSize != ringSize;
 }
 
-// ── Launch Button ─────────────────────────────────────────────────────────────
+// ── Floating Cards ────────────────────────────────────────────────────────────
 
-class _LaunchButton extends StatelessWidget {
-  final VoidCallback? onTap;
-  final bool isChecking;
-  final bool isUploading;
+class _FloatingCards extends StatelessWidget {
+  final int scanCount;
+  final int dailyGoal;
+  final int streak;
 
-  const _LaunchButton({
-    required this.onTap,
-    required this.isChecking,
-    required this.isUploading,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final busy = isChecking || isUploading;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 36),
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedOpacity(
-          opacity: onTap == null ? 0.65 : 1.0,
-          duration: const Duration(milliseconds: 200),
-          child: Container(
-            height: 96,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF0d631b), Color(0xFF2e7d32)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(40),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF0d631b).withValues(alpha: 0.30),
-                  blurRadius: 24,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Row(
-              children: [
-                // Icon container
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.20),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: busy
-                      ? const Center(
-                          child: SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2.5,
-                            ),
-                          ),
-                        )
-                      : const Icon(Icons.qr_code_scanner_rounded,
-                          color: Colors.white, size: 30),
-                ),
-                const SizedBox(width: 16),
-                // Labels
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        busy
-                            ? (isChecking
-                                ? 'Checking Product…'
-                                : 'Uploading…')
-                            : 'Start Collection',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        busy ? 'Please wait' : 'Launch Scanner',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.70),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 1.4,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Arrow circle
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    busy
-                        ? Icons.hourglass_top_rounded
-                        : Icons.arrow_forward_rounded,
-                    color: const Color(0xFF0d631b),
-                    size: 22,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Recent Scans ──────────────────────────────────────────────────────────────
-
-class _RecentScansSection extends StatelessWidget {
-  final List<_ScanEntry> scans;
-  const _RecentScansSection({required this.scans});
-
-  String _timeAgo(DateTime t) {
-    final diff = DateTime.now().difference(t);
-    if (diff.inSeconds < 60) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    return '${diff.inDays}d ago';
-  }
+  const _FloatingCards(
+      {required this.scanCount, required this.dailyGoal, required this.streak});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text(
-                'Recent Scans',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF071e27),
-                ),
-              ),
-              const Spacer(),
-              if (scans.isNotEmpty) ...[
-                const Text(
-                  'View All',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF0d631b),
-                  ),
-                ),
-                const Icon(Icons.chevron_right_rounded,
-                    color: Color(0xFF0d631b), size: 18),
-              ],
-            ],
-          ),
-          const SizedBox(height: 12),
-          if (scans.isEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 32),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.70),
-                borderRadius: BorderRadius.circular(16),
-                border:
-                    Border.all(color: Colors.white.withValues(alpha: 0.50)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(children: [
-                Icon(Icons.inventory_2_outlined,
-                    size: 36, color: Colors.grey.shade400),
-                const SizedBox(height: 8),
-                Text(
-                  'No scans yet today',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade500,
-                  ),
-                ),
-              ]),
-            )
-          else
-            ...scans.take(5).map((entry) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _ScanCard(
-                      entry: entry, timeAgo: _timeAgo(entry.time)),
-                )),
-        ],
-      ),
+    final remaining = (dailyGoal - scanCount).clamp(0, dailyGoal);
+    final pct = dailyGoal > 0 ? (scanCount / dailyGoal * 100).round() : 0;
+    return Row(
+      children: [
+        Expanded(
+            child: _FloatCard(
+          iconColors: const [Color(0xFFFFC78A), AppColors.dashOrange],
+          icon: Icons.local_fire_department_rounded,
+          label: 'Streak',
+          value: '$streak',
+          unit: 'days',
+          hint: 'Best 12 days',
+        )),
+        const SizedBox(width: 12),
+        Expanded(
+            child: _FloatCard(
+          iconColors: const [AppColors.dashTeal, AppColors.dashTealDark],
+          icon: Icons.my_location_rounded,
+          label: 'Remaining',
+          value: '$remaining',
+          unit: 'scans',
+          hint: '$pct% complete',
+        )),
+      ],
     );
   }
 }
 
-class _ScanCard extends StatelessWidget {
-  final _ScanEntry entry;
-  final String timeAgo;
-  const _ScanCard({required this.entry, required this.timeAgo});
+class _FloatCard extends StatelessWidget {
+  final List<Color> iconColors;
+  final IconData icon;
+  final String label;
+  final String value;
+  final String unit;
+  final String hint;
+
+  const _FloatCard(
+      {required this.iconColors,
+      required this.icon,
+      required this.label,
+      required this.value,
+      required this.unit,
+      required this.hint});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.85),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.50)),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
+              color: AppColors.dashDeep.withValues(alpha: 0.28),
+              blurRadius: 36,
+              offset: const Offset(0, 16),
+              spreadRadius: -20)
         ],
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
+          child: Container(
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF0d631b).withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(12),
+              color: Colors.white.withValues(alpha: 0.88),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.95)),
             ),
-            child: const Icon(Icons.inventory_2_rounded,
-                color: Color(0xFF0d631b), size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  entry.barcode,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF071e27),
-                    fontFamily: 'monospace',
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: iconColors),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                          color: AppColors.dashTealDark.withValues(alpha: 0.40),
+                          blurRadius: 12,
+                          offset: const Offset(0, 5),
+                          spreadRadius: -4)
+                    ],
                   ),
+                  child: Icon(icon, color: Colors.white, size: 20),
+                ),
+                const SizedBox(height: 12),
+                Text(label.toUpperCase(),
+                    style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.2,
+                        color: AppColors.dashMid)),
+                const SizedBox(height: 2),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(value,
+                        style: const TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.dashDeep,
+                            letterSpacing: -1)),
+                    const SizedBox(width: 4),
+                    Text(unit,
+                        style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.dashMid)),
+                  ],
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  timeAgo,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF40493d),
-                  ),
-                ),
+                Text(hint,
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.dashMid.withValues(alpha: 0.70))),
               ],
             ),
           ),
-          const Icon(Icons.check_circle_rounded,
-              color: Color(0xFF0d631b), size: 22),
-        ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Launch Button ─────────────────────────────────────────────────────────────
+
+class _V3LaunchButton extends StatelessWidget {
+  final VoidCallback? onTap;
+  final bool isChecking;
+  final bool isUploading;
+  final double screenWidth;
+
+  const _V3LaunchButton(
+      {required this.onTap,
+      required this.isChecking,
+      required this.isUploading,
+      required this.screenWidth});
+
+  @override
+  Widget build(BuildContext context) {
+    final busy = isChecking || isUploading;
+    final btnH = (screenWidth * 0.19).clamp(68.0, 80.0);
+    final iconSz = (btnH * 0.68).clamp(46.0, 56.0);
+    final arrowSz = (btnH * 0.78).clamp(52.0, 62.0);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedOpacity(
+        opacity: onTap == null ? 0.65 : 1.0,
+        duration: const Duration(milliseconds: 200),
+        child: Container(
+          height: btnH,
+          decoration: BoxDecoration(
+            color: AppColors.dashDeep,
+            borderRadius: BorderRadius.circular(btnH / 2),
+            boxShadow: [
+              BoxShadow(
+                  color: AppColors.dashDeep.withValues(alpha: 0.55),
+                  blurRadius: 36,
+                  offset: const Offset(0, 18),
+                  spreadRadius: -14)
+            ],
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Stack(
+            children: [
+              // Shimmer
+              Align(
+                alignment: Alignment.centerLeft,
+                child: FractionallySizedBox(
+                  widthFactor: 0.6,
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.transparent,
+                          Color(0x4034D6C2),
+                          Colors.transparent
+                        ],
+                        stops: [0.3, 0.5, 0.7],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              // Content
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  children: [
+                    Container(
+                      width: iconSz,
+                      height: iconSz,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              AppColors.dashTeal,
+                              AppColors.dashTealDark
+                            ]),
+                        borderRadius: BorderRadius.circular(iconSz * 0.33),
+                        boxShadow: [
+                          BoxShadow(
+                              color: AppColors.dashTeal.withValues(alpha: 0.60),
+                              blurRadius: 14,
+                              offset: const Offset(0, 5),
+                              spreadRadius: -4)
+                        ],
+                      ),
+                      child: busy
+                          ? const Center(
+                              child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                      color: Colors.white, strokeWidth: 2.5)))
+                          : const Icon(Icons.qr_code_scanner_rounded,
+                              color: Colors.white, size: 24),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            busy
+                                ? (isChecking
+                                    ? 'Checking Product…'
+                                    : 'Uploading…')
+                                : 'Start Collection',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize:
+                                    (screenWidth * 0.046).clamp(16.0, 19.0),
+                                fontWeight: FontWeight.w700),
+                          ),
+                          Text(
+                            busy
+                                ? 'Please wait'
+                                : 'Scanner ready · Tap to launch',
+                            style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.65),
+                                fontSize:
+                                    (screenWidth * 0.030).clamp(11.0, 13.0)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      width: arrowSz,
+                      height: arrowSz,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              AppColors.dashTeal,
+                              AppColors.dashTealMid
+                            ]),
+                        borderRadius: BorderRadius.circular(arrowSz * 0.35),
+                      ),
+                      child: Icon(
+                          busy
+                              ? Icons.hourglass_top_rounded
+                              : Icons.arrow_forward_rounded,
+                          color: Colors.white,
+                          size: 22),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1088,24 +1269,20 @@ class _CaptureGuideSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       padding: EdgeInsets.fromLTRB(
-          24, 16, 24, MediaQuery.of(context).padding.bottom + 24),
+          24, 16, 24, MediaQuery.paddingOf(context).bottom + 24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(4))),
           const SizedBox(height: 24),
-          // Step dots
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(totalSteps, (i) {
@@ -1128,46 +1305,36 @@ class _CaptureGuideSheet extends StatelessWidget {
             }),
           ),
           const SizedBox(height: 24),
-          // Icon
           Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.10),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: iconColor, size: 34),
-          ),
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                  color: iconColor.withValues(alpha: 0.10),
+                  shape: BoxShape.circle),
+              child: Icon(icon, color: iconColor, size: 34)),
           const SizedBox(height: 14),
-          Text(
-            'Step $stepNumber of $totalSteps  •  $label',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: iconColor,
-              letterSpacing: 0.4,
-            ),
-          ),
+          Text('Step $stepNumber of $totalSteps  •  $label',
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: iconColor,
+                  letterSpacing: 0.4)),
           const SizedBox(height: 8),
-          Text(
-            instruction,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF071e27),
-              height: 1.3,
-            ),
-          ),
+          Text(instruction,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textDark,
+                  height: 1.3)),
           if (barcode != null) ...[
             const SizedBox(height: 10),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade300)),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 const Icon(Icons.qr_code, size: 15, color: Colors.grey),
                 const SizedBox(width: 6),
@@ -1175,7 +1342,7 @@ class _CaptureGuideSheet extends StatelessWidget {
                     style: const TextStyle(
                         fontFamily: 'monospace',
                         fontSize: 13,
-                        color: Color(0xFF071e27))),
+                        color: AppColors.textDark)),
               ]),
             ),
           ],
@@ -1189,12 +1356,11 @@ class _CaptureGuideSheet extends StatelessWidget {
               label: const Text('Open Camera',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0d631b),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-                elevation: 0,
-              ),
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                  elevation: 0),
             ),
           ),
         ],
@@ -1203,7 +1369,7 @@ class _CaptureGuideSheet extends StatelessWidget {
   }
 }
 
-// ── Shared small widgets ──────────────────────────────────────────────────────
+// ── Shared ────────────────────────────────────────────────────────────────────
 
 class _BarcodeChip extends StatelessWidget {
   final String barcode;
@@ -1214,10 +1380,9 @@ class _BarcodeChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey.shade300)),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         const Icon(Icons.qr_code, size: 16, color: Colors.grey),
         const SizedBox(width: 6),
@@ -1229,4 +1394,48 @@ class _BarcodeChip extends StatelessWidget {
       ]),
     );
   }
+}
+
+// ignore: unused_element
+class _RecentScansSection extends StatelessWidget {
+  final List<_ScanEntry> scans;
+  const _RecentScansSection({required this.scans});
+
+  String _timeAgo(DateTime t) {
+    final d = DateTime.now().difference(t);
+    if (d.inSeconds < 60) return 'Just now';
+    if (d.inMinutes < 60) return '${d.inMinutes} min ago';
+    return '${d.inHours}h ago';
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: scans
+            .take(5)
+            .map((e) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.85),
+                        borderRadius: BorderRadius.circular(14)),
+                    child: Row(children: [
+                      const Icon(Icons.inventory_2_rounded,
+                          color: AppColors.primary, size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                          child: Text(e.barcode,
+                              style: const TextStyle(
+                                  fontFamily: 'monospace',
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600))),
+                      Text(_timeAgo(e.time),
+                          style: const TextStyle(
+                              fontSize: 11, color: AppColors.textLight)),
+                    ]),
+                  ),
+                ))
+            .toList(),
+      );
 }

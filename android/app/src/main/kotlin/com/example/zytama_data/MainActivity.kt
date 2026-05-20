@@ -1,4 +1,4 @@
-package com.example.zytama_data
+package com.zytama.datacollection
 
 import io.flutter.embedding.android.FlutterActivity
 

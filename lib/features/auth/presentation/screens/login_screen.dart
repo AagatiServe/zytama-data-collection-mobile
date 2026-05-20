@@ -1,19 +1,12 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../bloc/auth_bloc.dart';
+import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/dialog_utils.dart';
 import 'package:zytama_data/features/product/presentation/screens/dashboard_screen.dart';
-
-// ── Brand colours (from HTML Tailwind config) ─────────────────────────────
-const _primary = Color(0xFF0d631b);
-const _onSurfaceVariant = Color(0xFF40493d);
-const _outlineVariant = Color(0xFFbfcaba);
-const _outline = Color(0xFF707a6c);
-const _onSurface = Color(0xFF071e27);
-const _error = Color(0xFFba1a1a);
-const _surface = Color(0xFFf3faff);
-const _secondaryFixedDim = Color(0xFFbdcabe);
+import 'privacy_policy_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -82,9 +75,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   end: Alignment.bottomRight,
                   stops: [0.0, 0.5, 1.0],
                   colors: [
-                    Color(0xFFd6eeda), // primary/10
-                    _surface,
-                    _secondaryFixedDim,
+                    AppColors.background,
+                    AppColors.background,
+                    AppColors.accent,
                   ],
                 ),
               ),
@@ -94,59 +87,66 @@ class _LoginScreenState extends State<LoginScreen> {
             Positioned(
               top: -100,
               right: -100,
-              child: _blurCircle(280, _primary.withValues(alpha: 0.08)),
+              child:
+                  _blurCircle(280, AppColors.primary.withValues(alpha: 0.08)),
             ),
             Positioned(
               bottom: -80,
               left: -80,
-              child: _blurCircle(220, _primary.withValues(alpha: 0.06)),
+              child:
+                  _blurCircle(220, AppColors.primary.withValues(alpha: 0.06)),
             ),
             Positioned(
               top: 200,
               left: -60,
-              child:
-                  _blurCircle(160, _secondaryFixedDim.withValues(alpha: 0.5)),
+              child: _blurCircle(160, AppColors.accent.withValues(alpha: 0.5)),
             ),
 
             // ── Scrollable content ───────────────────────────────────
             SafeArea(
-              child: SingleChildScrollView(
-                keyboardDismissBehavior:
-                    ScrollViewKeyboardDismissBehavior.onDrag,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: MediaQuery.of(context).size.height -
-                        MediaQuery.of(context).padding.vertical,
-                  ),
-                  child: IntrinsicHeight(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const SizedBox(height: 48),
-                        _LogoSection(),
-                        const SizedBox(height: 24),
-                        _GlassCard(
-                          formKey: _formKey,
-                          emailCtrl: _emailCtrl,
-                          passCtrl: _passCtrl,
-                          emailFocus: _emailFocus,
-                          passFocus: _passFocus,
-                          obscure: _obscure,
-                          remember: _remember,
-                          onToggleObscure: () =>
-                              setState(() => _obscure = !_obscure),
-                          onToggleRemember: (v) =>
-                              setState(() => _remember = v),
-                          onSubmit: _submit,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isWide = constraints.maxWidth > 600;
+                  final hPad = isWide ? (constraints.maxWidth - 480) / 2 : 16.0;
+                  return SingleChildScrollView(
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    padding: EdgeInsets.symmetric(horizontal: hPad),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: MediaQuery.of(context).size.height -
+                            MediaQuery.of(context).padding.vertical,
+                      ),
+                      child: IntrinsicHeight(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(height: 48),
+                            _LogoSection(),
+                            const SizedBox(height: 24),
+                            _GlassCard(
+                              formKey: _formKey,
+                              emailCtrl: _emailCtrl,
+                              passCtrl: _passCtrl,
+                              emailFocus: _emailFocus,
+                              passFocus: _passFocus,
+                              obscure: _obscure,
+                              remember: _remember,
+                              onToggleObscure: () =>
+                                  setState(() => _obscure = !_obscure),
+                              onToggleRemember: (v) =>
+                                  setState(() => _remember = v),
+                              onSubmit: _submit,
+                            ),
+                            const SizedBox(height: 28),
+                            _Footer(),
+                            const SizedBox(height: 56),
+                          ],
                         ),
-                        const SizedBox(height: 28),
-                        _Footer(),
-                        const SizedBox(height: 56),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
             ),
           ],
@@ -174,38 +174,45 @@ class _LogoSection extends StatelessWidget {
         Container(
           width: 80,
           height: 80,
-          decoration: BoxDecoration(
-            color: _primary,
+          // decoration: BoxDecoration(
+          //   color: AppColors.primary,
+          //   borderRadius: BorderRadius.circular(20),
+          //   border: Border.all(
+          //       color: Colors.white.withValues(alpha: 0.5), width: 2),
+          //   boxShadow: [
+          //     BoxShadow(
+          //       color: AppColors.primary.withValues(alpha: 0.4),
+          //       blurRadius: 24,
+          //       offset: const Offset(0, 10),
+          //     ),
+          //   ],
+          // ),
+          // child: const Icon(Icons.inventory_2_rounded, color: Colors.white, size: 44),
+          child: ClipRRect(
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-                color: Colors.white.withValues(alpha: 0.5), width: 2),
-            boxShadow: [
-              BoxShadow(
-                color: _primary.withValues(alpha: 0.4),
-                blurRadius: 24,
-                offset: const Offset(0, 10),
-              ),
-            ],
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: Image.asset('assets/icon/icon.png', fit: BoxFit.cover),
+            ),
           ),
-          child: const Icon(Icons.eco_rounded, color: Colors.white, size: 44),
         ),
         const SizedBox(height: 12),
         const Text(
-          'Field Collection',
+          'Zytama',
           style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w600,
-            color: _primary,
-            letterSpacing: -0.3,
+            fontSize: 30,
+            fontWeight: FontWeight.w700,
+            color: AppColors.primary,
+            letterSpacing: -0.5,
           ),
         ),
         const SizedBox(height: 4),
         const Text(
-          'Secure Agent Access',
+          'Product Data Collection',
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: _onSurfaceVariant,
+            color: AppColors.textLight,
           ),
         ),
       ],
@@ -310,7 +317,7 @@ class _GlassCard extends StatelessWidget {
         style: const TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w500,
-          color: _onSurfaceVariant,
+          color: AppColors.textLight,
           letterSpacing: 0.1,
         ),
       );
@@ -326,7 +333,7 @@ InputDecoration _inputDeco({
   return InputDecoration(
     hintText: hint,
     hintStyle: const TextStyle(
-        color: _outlineVariant, fontSize: 16, fontWeight: FontWeight.w400),
+        color: AppColors.outline, fontSize: 16, fontWeight: FontWeight.w400),
     prefixIcon: prefix,
     suffixIcon: suffix,
     filled: true,
@@ -335,23 +342,25 @@ InputDecoration _inputDeco({
     isDense: false,
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: _outline.withValues(alpha: 0.30)),
+      borderSide:
+          BorderSide(color: AppColors.outlineDim.withValues(alpha: 0.30)),
     ),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(color: _outline.withValues(alpha: 0.30)),
+      borderSide:
+          BorderSide(color: AppColors.outlineDim.withValues(alpha: 0.30)),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(color: _primary, width: 1.5),
+      borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
     ),
     errorBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(color: _error),
+      borderSide: const BorderSide(color: AppColors.error),
     ),
     focusedErrorBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(color: _error, width: 1.5),
+      borderSide: const BorderSide(color: AppColors.error, width: 1.5),
     ),
   );
 }
@@ -374,12 +383,12 @@ class _EmailField extends StatelessWidget {
       focusNode: focusNode,
       keyboardType: TextInputType.emailAddress,
       textInputAction: TextInputAction.next,
-      style: const TextStyle(fontSize: 16, color: _onSurface),
+      style: const TextStyle(fontSize: 16, color: AppColors.textDark),
       onFieldSubmitted: (_) => FocusScope.of(context).requestFocus(nextFocus),
       decoration: _inputDeco(
         hint: 'agent@sector.com',
         prefix: const Icon(Icons.person_outline_rounded,
-            color: _onSurfaceVariant, size: 22),
+            color: AppColors.textLight, size: 22),
       ),
       validator: (v) {
         if (v == null || v.trim().isEmpty) return 'Email is required';
@@ -412,17 +421,17 @@ class _PasswordField extends StatelessWidget {
       focusNode: focusNode,
       obscureText: obscure,
       textInputAction: TextInputAction.done,
-      style: const TextStyle(fontSize: 16, color: _onSurface),
+      style: const TextStyle(fontSize: 16, color: AppColors.textDark),
       onFieldSubmitted: (_) => onSubmit(),
       decoration: _inputDeco(
         hint: '••••••••',
         prefix: const Icon(Icons.lock_outline_rounded,
-            color: _onSurfaceVariant, size: 22),
+            color: AppColors.textLight, size: 22),
         suffix: IconButton(
           onPressed: onToggle,
           icon: Icon(
             obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-            color: _onSurfaceVariant,
+            color: AppColors.textLight,
             size: 22,
           ),
         ),
@@ -456,10 +465,10 @@ class _RememberMe extends StatelessWidget {
             child: Checkbox(
               value: value,
               onChanged: (v) => onChanged(v ?? false),
-              activeColor: _primary,
+              activeColor: AppColors.primary,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(4)),
-              side: const BorderSide(color: _outline, width: 1.5),
+              side: const BorderSide(color: AppColors.outlineDim, width: 1.5),
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
           ),
@@ -469,7 +478,7 @@ class _RememberMe extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w400,
-              color: _onSurfaceVariant,
+              color: AppColors.textLight,
             ),
           ),
         ],
@@ -493,9 +502,9 @@ class _LoginButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: loading ? null : onTap,
         style: ElevatedButton.styleFrom(
-          backgroundColor: _primary,
+          backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
-          disabledBackgroundColor: _primary.withValues(alpha: 0.6),
+          disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.6),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ).copyWith(
@@ -503,7 +512,7 @@ class _LoginButton extends StatelessWidget {
             (s) => s.contains(WidgetState.pressed) ? 2 : 8,
           ),
           shadowColor: WidgetStateProperty.all(
-            _primary.withValues(alpha: 0.30),
+            AppColors.primary.withValues(alpha: 0.30),
           ),
         ),
         child: loading
@@ -533,20 +542,104 @@ class _LoginButton extends StatelessWidget {
 // ── Footer ────────────────────────────────────────────────────────────────────
 
 class _Footer extends StatelessWidget {
+  void _showContactDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        icon: Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            color: AppColors.accent.withValues(alpha: 0.35),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.admin_panel_settings_rounded,
+              color: AppColors.primary, size: 28),
+        ),
+        title: const Text(
+          'Create an Account',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 18,
+              color: AppColors.textDark),
+        ),
+        content: const Text(
+          'Agent accounts are managed by your administrator.\n\n'
+          'To request access, please contact your team lead or sign up directly through the Zytama web portal.',
+          textAlign: TextAlign.center,
+          style:
+              TextStyle(fontSize: 14, height: 1.6, color: AppColors.textMedium),
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close',
+                style: TextStyle(color: AppColors.textLight)),
+          ),
+          ElevatedButton.icon(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              final uri = Uri.parse('https://www.zytama.com');
+              if (await canLaunchUrl(uri)) launchUrl(uri);
+            },
+            icon: const Icon(Icons.open_in_browser_rounded, size: 18),
+            label: const Text('Open Web Portal'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+              elevation: 0,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        RichText(
-          text: const TextSpan(
-            style: TextStyle(fontSize: 11, color: _onSurfaceVariant),
-            children: [
-              TextSpan(text: "Don't have an account? "),
-              TextSpan(
-                text: 'Contact Administrator',
-                style: TextStyle(color: _primary, fontWeight: FontWeight.w700),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              "Don't have an account? ",
+              style: TextStyle(fontSize: 11, color: AppColors.textLight),
+            ),
+            GestureDetector(
+              onTap: () => _showContactDialog(context),
+              child: const Text(
+                'Contact Administrator',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700,
+                  decoration: TextDecoration.underline,
+                  decorationColor: AppColors.primary,
+                ),
               ),
-            ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        GestureDetector(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
+          ),
+          child: const Text(
+            'Privacy Policy',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppColors.primary,
+              decoration: TextDecoration.underline,
+              decorationColor: AppColors.primary,
+            ),
           ),
         ),
         const SizedBox(height: 16),
@@ -576,7 +669,7 @@ class _Footer extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: _onSurfaceVariant,
+                      color: AppColors.textLight,
                     ),
                   ),
                 ],
@@ -615,7 +708,7 @@ class _HelpFab extends StatelessWidget {
           child: IconButton(
             onPressed: () {},
             icon: const Icon(Icons.help_outline_rounded,
-                color: _primary, size: 24),
+                color: AppColors.primary, size: 24),
           ),
         ),
       ),
@@ -663,7 +756,7 @@ class _PulsingDotState extends State<_PulsingDot>
         width: 10,
         height: 10,
         decoration: const BoxDecoration(
-          color: Color(0xFF4CAF50),
+          color: AppColors.secondary,
           shape: BoxShape.circle,
         ),
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'core/constants/app_colors.dart';
 import 'core/di/injection_container.dart' as di;
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/product/presentation/bloc/product_bloc.dart';
@@ -23,11 +24,11 @@ class App extends StatelessWidget {
         BlocProvider<ProductBloc>(create: (_) => di.sl<ProductBloc>()),
       ],
       child: MaterialApp(
-        title: 'Field Collection',
+        title: 'Zytama',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF0d631b),
+            seedColor: AppColors.primary,
             brightness: Brightness.light,
           ),
           textTheme: GoogleFonts.workSansTextTheme(),
@@ -39,7 +40,7 @@ class App extends StatelessWidget {
             titleTextStyle: GoogleFonts.workSans(
               fontSize: 20,
               fontWeight: FontWeight.w600,
-              color: const Color(0xFF071e27),
+              color: AppColors.textDark,
             ),
           ),
         ),

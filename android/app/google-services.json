@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "599135384178",
+    "project_id": "zytama-3d1e7",
+    "storage_bucket": "zytama-3d1e7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:599135384178:android:4d477245a41315790fc8eb",
+        "android_client_info": {
+          "package_name": "com.zytama.datacollection"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCjmEdMzYEW6dcBXMYC9_0NAsXDisXSqv0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

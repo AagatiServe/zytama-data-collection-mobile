@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:zytama_data/core/constants/app_colors.dart';
 import 'package:image_picker/image_picker.dart';
 import '../bloc/product_bloc.dart';
 
@@ -120,8 +121,8 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
               right: 0,
               child: Center(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.45),
                     borderRadius: BorderRadius.circular(20),
@@ -133,8 +134,8 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
                           color: Colors.white70, size: 16),
                       SizedBox(width: 6),
                       Text('Pinch to zoom',
-                          style: TextStyle(
-                              color: Colors.white70, fontSize: 12)),
+                          style:
+                              TextStyle(color: Colors.white70, fontSize: 12)),
                     ],
                   ),
                 ),
@@ -177,9 +178,9 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF5F7FA),
+        backgroundColor: AppColors.background,
         appBar: AppBar(
-          backgroundColor: const Color(0xFFF5F7FA),
+          backgroundColor: AppColors.background,
           elevation: 0,
           title: const Text('Review Product',
               style: TextStyle(fontWeight: FontWeight.bold)),
@@ -247,7 +248,8 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
                   left: 0,
                   right: 0,
                   child: Container(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                    padding: EdgeInsets.fromLTRB(
+                        16, 12, 16, MediaQuery.paddingOf(context).bottom + 12),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       boxShadow: [
@@ -263,10 +265,10 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
                       child: ElevatedButton(
                         onPressed: uploading ? null : _submit,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0d631b),
+                          backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
                           disabledBackgroundColor:
-                              const Color(0xFF0d631b).withValues(alpha: 0.5),
+                              AppColors.primary.withValues(alpha: 0.5),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14)),
                           elevation: 0,
@@ -326,8 +328,7 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
       context: context,
       barrierDismissible: false,
       builder: (_) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(children: [
           Icon(Icons.check_circle_rounded, color: Colors.green, size: 28),
           SizedBox(width: 8),
@@ -379,11 +380,11 @@ class _BarcodeCard extends StatelessWidget {
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-            color: const Color(0xFF0d631b).withValues(alpha: 0.10),
+            color: AppColors.primary.withValues(alpha: 0.10),
             borderRadius: BorderRadius.circular(10),
           ),
           child: const Icon(Icons.qr_code_rounded,
-              color: Color(0xFF0d631b), size: 26),
+              color: AppColors.primary, size: 26),
         ),
         const SizedBox(width: 14),
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -398,7 +399,7 @@ class _BarcodeCard extends StatelessWidget {
                   fontSize: 17,
                   fontWeight: FontWeight.bold,
                   fontFamily: 'monospace',
-                  color: Color(0xFF071e27))),
+                  color: AppColors.textDark)),
         ]),
       ]),
     );
@@ -444,19 +445,18 @@ class _ImageCard extends StatelessWidget {
             Icon(stepIcon, color: stepColor, size: 20),
             const SizedBox(width: 8),
             Text(label,
-                style: const TextStyle(
-                    fontSize: 14, fontWeight: FontWeight.w600)),
+                style:
+                    const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
             const Spacer(),
             if (onReplace != null)
               TextButton.icon(
                 onPressed: onReplace,
                 icon: const Icon(Icons.refresh_rounded, size: 16),
-                label: const Text('Replace',
-                    style: TextStyle(fontSize: 13)),
+                label: const Text('Replace', style: TextStyle(fontSize: 13)),
                 style: TextButton.styleFrom(
                   foregroundColor: stepColor,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
@@ -467,12 +467,13 @@ class _ImageCard extends StatelessWidget {
           onTap: onTap,
           child: Stack(children: [
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                  bottom: Radius.circular(14)),
+              borderRadius:
+                  const BorderRadius.vertical(bottom: Radius.circular(14)),
               child: Image.file(
                 image,
                 width: double.infinity,
-                height: 200,
+                height: (MediaQuery.sizeOf(context).width * 0.55)
+                    .clamp(160.0, 260.0),
                 fit: BoxFit.cover,
               ),
             ),
@@ -480,8 +481,8 @@ class _ImageCard extends StatelessWidget {
               bottom: 8,
               right: 8,
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 5),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.50),
                   borderRadius: BorderRadius.circular(20),
@@ -489,12 +490,10 @@ class _ImageCard extends StatelessWidget {
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.zoom_in_rounded,
-                        color: Colors.white, size: 14),
+                    Icon(Icons.zoom_in_rounded, color: Colors.white, size: 14),
                     SizedBox(width: 4),
                     Text('Tap to zoom',
-                        style: TextStyle(
-                            color: Colors.white, fontSize: 11)),
+                        style: TextStyle(color: Colors.white, fontSize: 11)),
                   ],
                 ),
               ),

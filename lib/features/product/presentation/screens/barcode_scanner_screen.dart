@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:zytama_data/core/constants/app_colors.dart';
 
 class BarcodeScannerScreen extends StatefulWidget {
   const BarcodeScannerScreen({super.key});
@@ -11,6 +12,7 @@ class BarcodeScannerScreen extends StatefulWidget {
 class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
   final MobileScannerController _controller = MobileScannerController();
   bool _hasScanned = false;
+  bool _isVerifying = false;
 
   @override
   void dispose() {
@@ -18,13 +20,14 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
     super.dispose();
   }
 
-  void _onDetect(BarcodeCapture capture) {
+  Future<void> _onDetect(BarcodeCapture capture) async {
     if (_hasScanned) return;
     final value = capture.barcodes.firstOrNull?.rawValue;
-    if (value != null && value.isNotEmpty) {
-      _hasScanned = true;
-      Navigator.of(context).pop(value);
-    }
+    if (value == null || value.isEmpty) return;
+    _hasScanned = true;
+    setState(() => _isVerifying = true);
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (mounted) Navigator.of(context).pop(value);
   }
 
   @override
@@ -34,6 +37,12 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
+        titleTextStyle: const TextStyle(
+          color: Colors.white,
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+        ),
         title: const Text('Scan Barcode'),
         actions: [
           IconButton(
@@ -52,21 +61,20 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
         children: [
           MobileScanner(controller: _controller, onDetect: _onDetect),
 
-          // Scan frame overlay
+          // Scan frame
           Center(
-            child: Container(
-              width: 260,
-              height: 260,
+            child: Builder(builder: (context) {
+              final scanSize = (MediaQuery.sizeOf(context).width * 0.65)
+                  .clamp(200.0, 300.0);
+              return Container(
+              width: scanSize,
+              height: scanSize,
               decoration: BoxDecoration(
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.primary,
-                  width: 3,
-                ),
+                border: Border.all(color: AppColors.secondary, width: 3),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Stack(
                 children: [
-                  // Corner accents
                   for (final alignment in [
                     Alignment.topLeft,
                     Alignment.topRight,
@@ -79,14 +87,15 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
                         width: 24,
                         height: 24,
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary,
+                          color: AppColors.secondary,
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
                     ),
                 ],
               ),
-            ),
+            );
+            }),
           ),
 
           // Instruction text
@@ -96,23 +105,59 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
             right: 0,
             child: Column(
               children: [
-                const Icon(
-                  Icons.qr_code_scanner,
-                  color: Colors.white54,
-                  size: 28,
-                ),
+                const Icon(Icons.qr_code_scanner,
+                    color: Colors.white54, size: 28),
                 const SizedBox(height: 8),
                 Text(
                   'Align the barcode within the frame',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.8),
-                    fontSize: 15,
-                  ),
+                      color: Colors.white.withValues(alpha: 0.8), fontSize: 15),
                 ),
               ],
             ),
           ),
+
+          // Verifying overlay — shown after barcode is detected
+          if (_isVerifying)
+            Container(
+              color: Colors.black.withValues(alpha: 0.75),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 36, vertical: 28),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1A1A1A),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                        color: AppColors.secondary.withValues(alpha: 0.4)),
+                  ),
+                  child: const Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(
+                        color: AppColors.secondary,
+                        strokeWidth: 3,
+                      ),
+                      SizedBox(height: 20),
+                      Text(
+                        'Checking product…',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      SizedBox(height: 6),
+                      Text(
+                        'Please wait',
+                        style: TextStyle(color: Colors.white54, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
