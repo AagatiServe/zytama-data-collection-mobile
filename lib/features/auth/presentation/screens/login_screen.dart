@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../bloc/auth_bloc.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -188,12 +189,9 @@ class _LogoSection extends StatelessWidget {
           //   ],
           // ),
           // child: const Icon(Icons.inventory_2_rounded, color: Colors.white, size: 44),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-              child: Image.asset('assets/icon/icon.png', fit: BoxFit.cover),
-            ),
+          child: SvgPicture.asset(
+            'assets/svg/LOGO.svg',
+            fit: BoxFit.contain,
           ),
         ),
         const SizedBox(height: 12),

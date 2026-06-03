@@ -4,10 +4,10 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zytama_data/core/constants/app_colors.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:zytama_data/features/auth/presentation/bloc/auth_bloc.dart';
 import '../bloc/product_bloc.dart';
 import 'barcode_scanner_screen.dart';
+import 'multi_capture_screen.dart';
 import 'package:zytama_data/features/auth/presentation/screens/login_screen.dart';
 import 'notification_screen.dart';
 import 'product_review_screen.dart';
@@ -27,7 +27,6 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen>
     with TickerProviderStateMixin {
-  final _picker = ImagePicker();
   int _scanCount = 0;
   static const int _dailyGoal = 60;
   static const int _streak = 5;
@@ -106,47 +105,6 @@ class _DashboardScreenState extends State<DashboardScreen>
         : context.read<ProductBloc>().add(ResetProduct());
   }
 
-  Future<void> _capture({
-    required String label,
-    required String instruction,
-    required String? barcode,
-    required IconData icon,
-    required Color iconColor,
-    required int stepNumber,
-    required void Function(File) onCaptured,
-  }) async {
-    final proceed = await showModalBottomSheet<bool>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _CaptureGuideSheet(
-        stepNumber: stepNumber,
-        totalSteps: 4,
-        label: label,
-        instruction: instruction,
-        barcode: barcode,
-        icon: icon,
-        iconColor: iconColor,
-      ),
-    );
-    if (!mounted) return;
-    if (proceed != true) {
-      context.read<ProductBloc>().add(ResetProduct());
-      _openScanner();
-      return;
-    }
-    final x = await _picker.pickImage(
-      source: ImageSource.camera,
-      imageQuality: 85,
-      preferredCameraDevice: CameraDevice.rear,
-    );
-    if (!mounted) return;
-    if (x != null) {
-      onCaptured(File(x.path));
-    } else {
-      context.read<ProductBloc>().add(ResetProduct());
-      _openScanner();
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -212,39 +170,23 @@ class _DashboardScreenState extends State<DashboardScreen>
               context.read<ProductBloc>().add(ResetProduct());
               _openScanner();
             } else if (state is ProductNotExists) {
-              await _capture(
-                stepNumber: 1,
-                label: 'Product Photo',
-                instruction: 'Photograph the front of the product',
-                barcode: state.barcode,
-                icon: Icons.inventory_2_rounded,
-                iconColor: Colors.blue,
-                onCaptured: (f) =>
-                    context.read<ProductBloc>().add(ProductImageCaptured(f)),
+              final images = await Navigator.of(context).push<List<File>>(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      MultiCaptureScreen(barcode: state.barcode),
+                ),
               );
-            } else if (state is CapturingIngredientsImage) {
-              await _capture(
-                stepNumber: 2,
-                label: 'Ingredients Photo',
-                instruction: 'Photograph the ingredients label',
-                barcode: null,
-                icon: Icons.list_alt_rounded,
-                iconColor: Colors.deepPurple,
-                onCaptured: (f) => context
-                    .read<ProductBloc>()
-                    .add(IngredientsImageCaptured(f)),
-              );
-            } else if (state is CapturingNutritionImage) {
-              await _capture(
-                stepNumber: 3,
-                label: 'Nutrition Photo',
-                instruction: 'Photograph the nutrition facts label',
-                barcode: null,
-                icon: Icons.restaurant_menu_rounded,
-                iconColor: Colors.orange,
-                onCaptured: (f) =>
-                    context.read<ProductBloc>().add(NutritionImageCaptured(f)),
-              );
+              if (!context.mounted) return;
+              if (images != null && images.length == 3) {
+                context.read<ProductBloc>().add(AllImagesCaptured(
+                      productImage: images[0],
+                      ingredientsImage: images[1],
+                      nutritionImage: images[2],
+                    ));
+              } else {
+                context.read<ProductBloc>().add(ResetProduct());
+                _openScanner();
+              }
             } else if (state is ReadyToReview) {
               final cb = state.barcode;
               await Navigator.of(context).push(MaterialPageRoute(
@@ -262,8 +204,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                 ),
               ));
               if (!context.mounted) return;
-              if (context.read<ProductBloc>().state is ProductInitial)
+              if (context.read<ProductBloc>().state is ProductInitial) {
                 _openScanner();
+              }
             } else if (state is ProductError) {
               await showDialog(
                 context: context,
@@ -1245,129 +1188,6 @@ class _V3LaunchButton extends StatelessWidget {
 }
 
 // ── Capture guide sheet ───────────────────────────────────────────────────────
-
-class _CaptureGuideSheet extends StatelessWidget {
-  final int stepNumber;
-  final int totalSteps;
-  final String label;
-  final String instruction;
-  final String? barcode;
-  final IconData icon;
-  final Color iconColor;
-
-  const _CaptureGuideSheet({
-    required this.stepNumber,
-    required this.totalSteps,
-    required this.label,
-    required this.instruction,
-    required this.barcode,
-    required this.icon,
-    required this.iconColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      padding: EdgeInsets.fromLTRB(
-          24, 16, 24, MediaQuery.paddingOf(context).bottom + 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(4))),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(totalSteps, (i) {
-              final active = i + 1 == stepNumber;
-              final done = i + 1 < stepNumber;
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                width: active ? 24 : 8,
-                height: 8,
-                margin: const EdgeInsets.symmetric(horizontal: 3),
-                decoration: BoxDecoration(
-                  color: active
-                      ? iconColor
-                      : done
-                          ? iconColor.withValues(alpha: 0.35)
-                          : Colors.grey.shade200,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              );
-            }),
-          ),
-          const SizedBox(height: 24),
-          Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.10),
-                  shape: BoxShape.circle),
-              child: Icon(icon, color: iconColor, size: 34)),
-          const SizedBox(height: 14),
-          Text('Step $stepNumber of $totalSteps  •  $label',
-              style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: iconColor,
-                  letterSpacing: 0.4)),
-          const SizedBox(height: 8),
-          Text(instruction,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textDark,
-                  height: 1.3)),
-          if (barcode != null) ...[
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.shade300)),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                const Icon(Icons.qr_code, size: 15, color: Colors.grey),
-                const SizedBox(width: 6),
-                Text(barcode!,
-                    style: const TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 13,
-                        color: AppColors.textDark)),
-              ]),
-            ),
-          ],
-          const SizedBox(height: 28),
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: ElevatedButton.icon(
-              onPressed: () => Navigator.of(context).pop(true),
-              icon: const Icon(Icons.camera_alt_rounded, size: 20),
-              label: const Text('Open Camera',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
-                  elevation: 0),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 // ── Shared ────────────────────────────────────────────────────────────────────
 

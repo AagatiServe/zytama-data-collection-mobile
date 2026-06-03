@@ -35,4 +35,15 @@ class SubmitProduct extends ProductEvent {
   });
 }
 
+class AllImagesCaptured extends ProductEvent {
+  final File productImage;
+  final File ingredientsImage;
+  final File nutritionImage;
+  AllImagesCaptured({
+    required this.productImage,
+    required this.ingredientsImage,
+    required this.nutritionImage,
+  });
+}
+
 class ResetProduct extends ProductEvent {}

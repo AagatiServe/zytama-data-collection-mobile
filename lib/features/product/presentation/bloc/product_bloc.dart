@@ -21,6 +21,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     on<ProductImageCaptured>(_onProductImageCaptured);
     on<IngredientsImageCaptured>(_onIngredientsImageCaptured);
     on<NutritionImageCaptured>(_onNutritionImageCaptured);
+    on<AllImagesCaptured>(_onAllImagesCaptured);
     on<SubmitProduct>(_onSubmitProduct);
     on<ResetProduct>(_onResetProduct);
   }
@@ -73,6 +74,20 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
       _productImage!,
       _ingredientsImage!,
       event.image,
+    ));
+  }
+
+  void _onAllImagesCaptured(
+    AllImagesCaptured event,
+    Emitter<ProductState> emit,
+  ) {
+    _productImage = event.productImage;
+    _ingredientsImage = event.ingredientsImage;
+    emit(ReadyToReview(
+      _barcode!,
+      event.productImage,
+      event.ingredientsImage,
+      event.nutritionImage,
     ));
   }
 
