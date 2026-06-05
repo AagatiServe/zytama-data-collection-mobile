@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -23,14 +22,13 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailFocus = FocusNode();
   final _passFocus = FocusNode();
   bool _obscure = true;
-  bool _remember = false;
+  bool _trustDevice = false;
 
-  initState() {
+  @override
+  void initState() {
     super.initState();
-    _emailCtrl.text =
-        'devag1-0001@zytama.com'; // Optionally, load saved email here
-    _passCtrl.text = 'TestPassword@456';
-    // Optionally, load saved email/remember state here
+    // _emailCtrl.text = 'devag1-0001@zytama.com';
+    // _passCtrl.text = 'TestPassword@456';
   }
 
   @override
@@ -54,6 +52,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final isWide = size.width > 600;
+    final hPad = isWide ? (size.width - 480) / 2 : 28.0;
+
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is AuthAuthenticated) {
@@ -65,510 +67,335 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       },
       child: Scaffold(
-        resizeToAvoidBottomInset: true,
-        body: Stack(
-          children: [
-            // ── Gradient background ──────────────────────────────────
-            Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  stops: [0.0, 0.5, 1.0],
-                  colors: [
-                    AppColors.background,
-                    AppColors.background,
-                    AppColors.accent,
-                  ],
-                ),
-              ),
+          resizeToAvoidBottomInset: true,
+          body: Container(
+            height: double.infinity,
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                  image: const AssetImage('assets/images/login_bg.png'),
+                  fit: BoxFit.cover),
             ),
-
-            // ── Decorative blurred circles ───────────────────────────
-            Positioned(
-              top: -100,
-              right: -100,
-              child:
-                  _blurCircle(280, AppColors.primary.withValues(alpha: 0.08)),
-            ),
-            Positioned(
-              bottom: -80,
-              left: -80,
-              child:
-                  _blurCircle(220, AppColors.primary.withValues(alpha: 0.06)),
-            ),
-            Positioned(
-              top: 200,
-              left: -60,
-              child: _blurCircle(160, AppColors.accent.withValues(alpha: 0.5)),
-            ),
-
-            // ── Scrollable content ───────────────────────────────────
-            SafeArea(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final isWide = constraints.maxWidth > 600;
-                  final hPad = isWide ? (constraints.maxWidth - 480) / 2 : 16.0;
-                  return SingleChildScrollView(
-                    keyboardDismissBehavior:
-                        ScrollViewKeyboardDismissBehavior.onDrag,
-                    padding: EdgeInsets.symmetric(horizontal: hPad),
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minHeight: MediaQuery.of(context).size.height -
-                            MediaQuery.of(context).padding.vertical,
+            child: SafeArea(
+              child: SingleChildScrollView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: hPad),
+                  child: Column(
+                    children: [
+                      SizedBox(height: size.height * 0.1),
+                      SvgPicture.asset(
+                        'assets/svg/logo1.svg',
+                        height: (size.height * 0.13).clamp(72.0, 110.0),
                       ),
-                      child: IntrinsicHeight(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const SizedBox(height: 48),
-                            _LogoSection(),
-                            const SizedBox(height: 24),
-                            _GlassCard(
-                              formKey: _formKey,
-                              emailCtrl: _emailCtrl,
-                              passCtrl: _passCtrl,
-                              emailFocus: _emailFocus,
-                              passFocus: _passFocus,
-                              obscure: _obscure,
-                              remember: _remember,
-                              onToggleObscure: () =>
-                                  setState(() => _obscure = !_obscure),
-                              onToggleRemember: (v) =>
-                                  setState(() => _remember = v),
-                              onSubmit: _submit,
-                            ),
-                            const SizedBox(height: 28),
-                            _Footer(),
-                            const SizedBox(height: 56),
-                          ],
+                      SizedBox(height: size.height * 0.01),
+                      SvgPicture.asset(
+                        'assets/svg/zytama.svg',
+                        width: (size.width * 0.28).clamp(160.0, 160.0),
+                      ),
+                      SizedBox(height: size.height * 0.016),
+                      Text(
+                        'Hey, Welcome Back!',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: (size.width * 0.062).clamp(20.0, 26.0),
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
                         ),
                       ),
-                    ),
-                  );
-                },
+                      const SizedBox(height: 6),
+                      Text(
+                        'Login to your Account',
+                        style: TextStyle(
+                          fontSize: (size.width * 0.036).clamp(12.0, 15.0),
+                          color: Colors.black,
+                        ),
+                      ),
+                      SizedBox(height: size.height * 0.028),
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.92),
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.10),
+                              blurRadius: 24,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _fieldLabel('Email'),
+                              const SizedBox(height: 8),
+                              TextFormField(
+                                controller: _emailCtrl,
+                                focusNode: _emailFocus,
+                                keyboardType: TextInputType.emailAddress,
+                                textInputAction: TextInputAction.next,
+                                style: const TextStyle(
+                                    fontSize: 14, color: AppColors.textDark),
+                                onFieldSubmitted: (_) => FocusScope.of(context)
+                                    .requestFocus(_passFocus),
+                                decoration: _inputDeco(
+                                  hint: 'agent@zytama.com',
+                                  suffix: const Icon(Icons.mail_outline,
+                                      color: Colors.grey, size: 20),
+                                ),
+                                validator: (v) {
+                                  if (v == null || v.trim().isEmpty) {
+                                    return 'Email is required';
+                                  }
+                                  if (!v.contains('@')) {
+                                    return 'Enter a valid email';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 16),
+                              _fieldLabel('Password'),
+                              const SizedBox(height: 8),
+                              TextFormField(
+                                controller: _passCtrl,
+                                focusNode: _passFocus,
+                                obscureText: _obscure,
+                                textInputAction: TextInputAction.done,
+                                style: const TextStyle(
+                                    fontSize: 14, color: AppColors.textDark),
+                                onFieldSubmitted: (_) => _submit(),
+                                decoration: _inputDeco(
+                                  hint: '••••••••',
+                                  suffix: IconButton(
+                                    icon: Icon(
+                                      _obscure
+                                          ? Icons.lock_outline
+                                          : Icons.lock_open,
+                                      color: Colors.grey,
+                                      size: 20,
+                                    ),
+                                    onPressed: () =>
+                                        setState(() => _obscure = !_obscure),
+                                  ),
+                                ),
+                                validator: (v) {
+                                  if (v == null || v.isEmpty) {
+                                    return 'Password is required';
+                                  }
+                                  if (v.length < 6) {
+                                    return 'Minimum 6 characters';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 14),
+                              GestureDetector(
+                                onTap: () => setState(
+                                    () => _trustDevice = !_trustDevice),
+                                behavior: HitTestBehavior.opaque,
+                                child: Row(
+                                  children: [
+                                    SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: Checkbox(
+                                        value: _trustDevice,
+                                        onChanged: (v) => setState(
+                                            () => _trustDevice = v ?? false),
+                                        activeColor: AppColors.primary,
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(4)),
+                                        materialTapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    const Text(
+                                      'Trust This Device for 30 Days',
+                                      style: TextStyle(
+                                          fontSize: 13, color: Colors.grey),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              BlocBuilder<AuthBloc, AuthState>(
+                                buildWhen: (p, c) =>
+                                    c is AuthLoading || p is AuthLoading,
+                                builder: (_, state) {
+                                  final loading = state is AuthLoading;
+                                  return SizedBox(
+                                    width: double.infinity,
+                                    height: 50,
+                                    child: ElevatedButton(
+                                      onPressed: loading ? null : _submit,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.primary,
+                                        foregroundColor: Colors.white,
+                                        disabledBackgroundColor: AppColors
+                                            .primary
+                                            .withValues(alpha: 0.6),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(16),
+                                        ),
+                                        elevation: 4,
+                                      ),
+                                      child: loading
+                                          ? const SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(
+                                                  color: Colors.white,
+                                                  strokeWidth: 2.5),
+                                            )
+                                          : const Row(
+                                              children: [
+                                                Spacer(),
+                                                Text(
+                                                  'Login',
+                                                  style: TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                                Spacer(),
+                                                Icon(Icons.arrow_forward,
+                                                    size: 20),
+                                                SizedBox(width: 4),
+                                              ],
+                                            ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: size.height * 0.028),
+                      GestureDetector(
+                        onTap: () => _showContactDialog(context),
+                        child: RichText(
+                          text: const TextSpan(
+                            style: TextStyle(fontSize: 13),
+                            children: [
+                              TextSpan(
+                                text: "Don't have an account? ",
+                                style: TextStyle(color: AppColors.primary),
+                              ),
+                              TextSpan(
+                                text: 'Contact Administrator',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: size.height * 0.012),
+                      GestureDetector(
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                              builder: (_) => const PrivacyPolicyScreen()),
+                        ),
+                        child: const Text(
+                          'Privacy Policy',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black,
+                            decoration: TextDecoration.underline,
+                            decorationColor: Colors.black,
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: size.height * 0.04),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ],
-        ),
-      ),
+          )),
     );
   }
 
-  Widget _blurCircle(double size, Color color) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-    );
-  }
-}
-
-// ── Logo section ─────────────────────────────────────────────────────────────
-
-class _LogoSection extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width: 80,
-          height: 80,
-          // decoration: BoxDecoration(
-          //   color: AppColors.primary,
-          //   borderRadius: BorderRadius.circular(20),
-          //   border: Border.all(
-          //       color: Colors.white.withValues(alpha: 0.5), width: 2),
-          //   boxShadow: [
-          //     BoxShadow(
-          //       color: AppColors.primary.withValues(alpha: 0.4),
-          //       blurRadius: 24,
-          //       offset: const Offset(0, 10),
-          //     ),
-          //   ],
-          // ),
-          // child: const Icon(Icons.inventory_2_rounded, color: Colors.white, size: 44),
-          child: SvgPicture.asset(
-            'assets/svg/LOGO.svg',
-            fit: BoxFit.contain,
-          ),
-        ),
-        const SizedBox(height: 12),
-        const Text(
-          'Zytama',
-          style: TextStyle(
-            fontSize: 30,
-            fontWeight: FontWeight.w700,
-            color: AppColors.primary,
-            letterSpacing: -0.5,
-          ),
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          'Product Data Collection',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textLight,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ── Glass login card ──────────────────────────────────────────────────────────
-
-class _GlassCard extends StatelessWidget {
-  final GlobalKey<FormState> formKey;
-  final TextEditingController emailCtrl;
-  final TextEditingController passCtrl;
-  final FocusNode emailFocus;
-  final FocusNode passFocus;
-  final bool obscure;
-  final bool remember;
-  final VoidCallback onToggleObscure;
-  final ValueChanged<bool> onToggleRemember;
-  final VoidCallback onSubmit;
-
-  const _GlassCard({
-    required this.formKey,
-    required this.emailCtrl,
-    required this.passCtrl,
-    required this.emailFocus,
-    required this.passFocus,
-    required this.obscure,
-    required this.remember,
-    required this.onToggleObscure,
-    required this.onToggleRemember,
-    required this.onSubmit,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(32),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: Container(
-          padding: const EdgeInsets.all(28),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.70),
-            borderRadius: BorderRadius.circular(32),
-            border: Border.all(
-                color: Colors.white.withValues(alpha: 0.35), width: 1),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.10),
-                blurRadius: 48,
-                offset: const Offset(0, 20),
-              ),
-            ],
-          ),
-          child: Form(
-            key: formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Email
-                _label('Phone or Email'),
-                const SizedBox(height: 6),
-                _EmailField(
-                    ctrl: emailCtrl,
-                    focusNode: emailFocus,
-                    nextFocus: passFocus),
-                const SizedBox(height: 16),
-
-                // Password header row
-                _label('Password'),
-                const SizedBox(height: 6),
-                _PasswordField(
-                  ctrl: passCtrl,
-                  focusNode: passFocus,
-                  obscure: obscure,
-                  onToggle: onToggleObscure,
-                  onSubmit: onSubmit,
-                ),
-                const SizedBox(height: 10),
-
-                // Remember me
-                _RememberMe(value: remember, onChanged: onToggleRemember),
-                const SizedBox(height: 20),
-
-                // Login button — only this rebuilds
-                BlocBuilder<AuthBloc, AuthState>(
-                  buildWhen: (p, c) => c is AuthLoading || p is AuthLoading,
-                  builder: (_, state) => _LoginButton(
-                      loading: state is AuthLoading, onTap: onSubmit),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _label(String text) => Text(
+  Widget _fieldLabel(String text) => Text(
         text,
         style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-          color: AppColors.textLight,
-          letterSpacing: 0.1,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: Colors.grey,
         ),
       );
-}
 
-// ── Input fields ──────────────────────────────────────────────────────────────
-
-InputDecoration _inputDeco({
-  required String hint,
-  required Widget prefix,
-  Widget? suffix,
-}) {
-  return InputDecoration(
-    hintText: hint,
-    hintStyle: const TextStyle(
-        color: AppColors.outline, fontSize: 16, fontWeight: FontWeight.w400),
-    prefixIcon: prefix,
-    suffixIcon: suffix,
-    filled: true,
-    fillColor: Colors.white.withValues(alpha: 0.50),
-    contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-    isDense: false,
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide:
-          BorderSide(color: AppColors.outlineDim.withValues(alpha: 0.30)),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide:
-          BorderSide(color: AppColors.outlineDim.withValues(alpha: 0.30)),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-    ),
-    errorBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(color: AppColors.error),
-    ),
-    focusedErrorBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(color: AppColors.error, width: 1.5),
-    ),
-  );
-}
-
-class _EmailField extends StatelessWidget {
-  final TextEditingController ctrl;
-  final FocusNode focusNode;
-  final FocusNode nextFocus;
-
-  const _EmailField({
-    required this.ctrl,
-    required this.focusNode,
-    required this.nextFocus,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TextFormField(
-      controller: ctrl,
-      focusNode: focusNode,
-      keyboardType: TextInputType.emailAddress,
-      textInputAction: TextInputAction.next,
-      style: const TextStyle(fontSize: 16, color: AppColors.textDark),
-      onFieldSubmitted: (_) => FocusScope.of(context).requestFocus(nextFocus),
-      decoration: _inputDeco(
-        hint: 'agent@sector.com',
-        prefix: const Icon(Icons.person_outline_rounded,
-            color: AppColors.textLight, size: 22),
+  InputDecoration _inputDeco({required String hint, Widget? suffix}) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+      suffixIcon: suffix,
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: Colors.grey.shade300),
       ),
-      validator: (v) {
-        if (v == null || v.trim().isEmpty) return 'Email is required';
-        if (!v.contains('@')) return 'Enter a valid email';
-        return null;
-      },
-    );
-  }
-}
-
-class _PasswordField extends StatelessWidget {
-  final TextEditingController ctrl;
-  final FocusNode focusNode;
-  final bool obscure;
-  final VoidCallback onToggle;
-  final VoidCallback onSubmit;
-
-  const _PasswordField({
-    required this.ctrl,
-    required this.focusNode,
-    required this.obscure,
-    required this.onToggle,
-    required this.onSubmit,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TextFormField(
-      controller: ctrl,
-      focusNode: focusNode,
-      obscureText: obscure,
-      textInputAction: TextInputAction.done,
-      style: const TextStyle(fontSize: 16, color: AppColors.textDark),
-      onFieldSubmitted: (_) => onSubmit(),
-      decoration: _inputDeco(
-        hint: '••••••••',
-        prefix: const Icon(Icons.lock_outline_rounded,
-            color: AppColors.textLight, size: 22),
-        suffix: IconButton(
-          onPressed: onToggle,
-          icon: Icon(
-            obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-            color: AppColors.textLight,
-            size: 22,
-          ),
-        ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: Colors.grey.shade300),
       ),
-      validator: (v) {
-        if (v == null || v.isEmpty) return 'Password is required';
-        if (v.length < 6) return 'Minimum 6 characters';
-        return null;
-      },
-    );
-  }
-}
-
-// ── Remember me ───────────────────────────────────────────────────────────────
-
-class _RememberMe extends StatelessWidget {
-  final bool value;
-  final ValueChanged<bool> onChanged;
-  const _RememberMe({required this.value, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => onChanged(!value),
-      behavior: HitTestBehavior.opaque,
-      child: Row(
-        children: [
-          SizedBox(
-            width: 24,
-            height: 24,
-            child: Checkbox(
-              value: value,
-              onChanged: (v) => onChanged(v ?? false),
-              activeColor: AppColors.primary,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4)),
-              side: const BorderSide(color: AppColors.outlineDim, width: 1.5),
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-          ),
-          const SizedBox(width: 10),
-          const Text(
-            'Remember this device',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w400,
-              color: AppColors.textLight,
-            ),
-          ),
-        ],
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: AppColors.error),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: AppColors.error, width: 1.5),
       ),
     );
   }
-}
 
-// ── Login button ──────────────────────────────────────────────────────────────
-
-class _LoginButton extends StatelessWidget {
-  final bool loading;
-  final VoidCallback onTap;
-  const _LoginButton({required this.loading, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: ElevatedButton(
-        onPressed: loading ? null : onTap,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.6),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ).copyWith(
-          elevation: WidgetStateProperty.resolveWith(
-            (s) => s.contains(WidgetState.pressed) ? 2 : 8,
-          ),
-          shadowColor: WidgetStateProperty.all(
-            AppColors.primary.withValues(alpha: 0.30),
-          ),
-        ),
-        child: loading
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                    color: Colors.white, strokeWidth: 2.5),
-              )
-            : const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('Login',
-                      style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.1)),
-                  SizedBox(width: 8),
-                  Icon(Icons.login_rounded, size: 22),
-                ],
-              ),
-      ),
-    );
-  }
-}
-
-// ── Footer ────────────────────────────────────────────────────────────────────
-
-class _Footer extends StatelessWidget {
   void _showContactDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         icon: Container(
-          width: 56,
-          height: 56,
+          width: 50,
+          height: 50,
           decoration: BoxDecoration(
-            color: AppColors.accent.withValues(alpha: 0.35),
+            color: AppColors.accent.withValues(alpha: 0.30),
             shape: BoxShape.circle,
           ),
           child: const Icon(Icons.admin_panel_settings_rounded,
-              color: AppColors.primary, size: 28),
+              color: AppColors.primary, size: 26),
         ),
         title: const Text(
           'Create an Account',
           textAlign: TextAlign.center,
           style: TextStyle(
               fontWeight: FontWeight.w700,
-              fontSize: 18,
+              fontSize: 17,
               color: AppColors.textDark),
         ),
         content: const Text(
           'Agent accounts are managed by your administrator.\n\n'
-          'To request access, please contact your team lead or sign up directly through the Zytama web portal.',
+          'To request access, contact your team lead or sign up via the Zytama web portal.',
           textAlign: TextAlign.center,
           style:
-              TextStyle(fontSize: 14, height: 1.6, color: AppColors.textMedium),
+              TextStyle(fontSize: 13, height: 1.6, color: AppColors.textMedium),
         ),
         actionsAlignment: MainAxisAlignment.center,
         actions: [
@@ -583,7 +410,7 @@ class _Footer extends StatelessWidget {
               final uri = Uri.parse('https://www.zytama.com');
               if (await canLaunchUrl(uri)) launchUrl(uri);
             },
-            icon: const Icon(Icons.open_in_browser_rounded, size: 18),
+            icon: const Icon(Icons.open_in_browser_rounded, size: 16),
             label: const Text('Open Web Portal'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
@@ -594,169 +421,6 @@ class _Footer extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              "Don't have an account? ",
-              style: TextStyle(fontSize: 11, color: AppColors.textLight),
-            ),
-            GestureDetector(
-              onTap: () => _showContactDialog(context),
-              child: const Text(
-                'Contact Administrator',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w700,
-                  decoration: TextDecoration.underline,
-                  decorationColor: AppColors.primary,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        GestureDetector(
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
-          ),
-          child: const Text(
-            'Privacy Policy',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: AppColors.primary,
-              decoration: TextDecoration.underline,
-              decorationColor: AppColors.primary,
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(999),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.40),
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.60)),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 8),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const _PulsingDot(),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'System Online',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textLight,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ── Help FAB ──────────────────────────────────────────────────────────────────
-
-class _HelpFab extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return ClipOval(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-        child: Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.80),
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withValues(alpha: 0.60)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.15),
-                blurRadius: 16,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.help_outline_rounded,
-                color: AppColors.primary, size: 24),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Pulsing green dot ─────────────────────────────────────────────────────────
-
-class _PulsingDot extends StatefulWidget {
-  const _PulsingDot();
-
-  @override
-  State<_PulsingDot> createState() => _PulsingDotState();
-}
-
-class _PulsingDotState extends State<_PulsingDot>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  late final Animation<double> _opacity;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1100),
-    )..repeat(reverse: true);
-    _opacity = Tween<double>(begin: 0.35, end: 1.0).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _opacity,
-      child: Container(
-        width: 10,
-        height: 10,
-        decoration: const BoxDecoration(
-          color: AppColors.secondary,
-          shape: BoxShape.circle,
-        ),
       ),
     );
   }

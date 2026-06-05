@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:zytama_data/core/constants/app_colors.dart';
 import 'package:image_picker/image_picker.dart';
 import '../bloc/product_bloc.dart';
 
@@ -90,14 +89,11 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
                     ],
                   ),
                 ),
-                child: Text(
-                  label,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                child: Text(label,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600)),
               ),
             ),
             Positioned(
@@ -110,19 +106,19 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
                 ),
                 child: IconButton(
                   icon: const Icon(Icons.close_rounded,
-                      color: Colors.white, size: 22),
+                      color: Colors.white, size: 20),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ),
             ),
             Positioned(
-              bottom: 32,
+              bottom: 28,
               left: 0,
               right: 0,
               child: Center(
                 child: Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.45),
                     borderRadius: BorderRadius.circular(20),
@@ -130,12 +126,11 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.pinch_rounded,
-                          color: Colors.white70, size: 16),
-                      SizedBox(width: 6),
+                      Icon(Icons.pinch_rounded, color: Colors.white70, size: 14),
+                      SizedBox(width: 5),
                       Text('Pinch to zoom',
                           style:
-                              TextStyle(color: Colors.white70, fontSize: 12)),
+                              TextStyle(color: Colors.white70, fontSize: 11)),
                     ],
                   ),
                 ),
@@ -153,6 +148,38 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
           ingredientsImage: _ingredientsImage,
           nutritionImage: _nutritionImage,
         ));
+  }
+
+  Future<void> _showSuccessDialog() {
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(children: [
+          Icon(Icons.check_circle_rounded, color: Colors.green, size: 26),
+          SizedBox(width: 8),
+          Text('Uploaded!'),
+        ]),
+        content: const Text(
+          'Product data has been uploaded successfully.',
+          style: TextStyle(fontSize: 14),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Done'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -178,71 +205,120 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: AppColors.background,
-        appBar: AppBar(
-          backgroundColor: AppColors.background,
-          elevation: 0,
-          title: const Text('Review Product',
-              style: TextStyle(fontWeight: FontWeight.bold)),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded),
-            onPressed: () {
-              context.read<ProductBloc>().add(ResetProduct());
-              Navigator.of(context).pop();
-            },
-          ),
-        ),
+        backgroundColor: const Color(0xffF8FBF8),
         body: BlocBuilder<ProductBloc, ProductState>(
           builder: (context, state) {
             final uploading = state is ProductUploading;
             return Stack(
               children: [
-                ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
-                  children: [
-                    _BarcodeCard(barcode: widget.barcode),
-                    const SizedBox(height: 16),
-                    const Padding(
-                      padding: EdgeInsets.only(left: 4, bottom: 10),
-                      child: Text('Captured Images',
-                          style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey,
-                              letterSpacing: 0.5)),
-                    ),
-                    _ImageCard(
-                      label: 'Front Image',
-                      stepColor: Colors.blue,
-                      stepIcon: Icons.inventory_2_rounded,
-                      image: _productImage,
-                      onTap: () => _viewImage(_productImage, 'Front Image'),
-                      onReplace: uploading ? null : () => _replaceImage(0),
-                    ),
-                    const SizedBox(height: 12),
-                    _ImageCard(
-                      label: 'Ingredients Image',
-                      stepColor: Colors.deepPurple,
-                      stepIcon: Icons.list_alt_rounded,
-                      image: _ingredientsImage,
-                      onTap: () =>
-                          _viewImage(_ingredientsImage, 'Ingredients Image'),
-                      onReplace: uploading ? null : () => _replaceImage(1),
-                    ),
-                    const SizedBox(height: 12),
-                    _ImageCard(
-                      label: 'Nutrition Image',
-                      stepColor: Colors.orange,
-                      stepIcon: Icons.restaurant_menu_rounded,
-                      image: _nutritionImage,
-                      onTap: () =>
-                          _viewImage(_nutritionImage, 'Nutrition Image'),
-                      onReplace: uploading ? null : () => _replaceImage(2),
-                    ),
-                  ],
+                SafeArea(
+                  child: Column(
+                    children: [
+                      // ── Header ────────────────────────────────────────
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 14),
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Color(0xffDDF4E8),
+                              Color(0xffEEF9F0),
+                            ],
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            IconButton(
+                              onPressed: () {
+                                context
+                                    .read<ProductBloc>()
+                                    .add(ResetProduct());
+                                Navigator.of(context).pop();
+                              },
+                              icon: const Icon(Icons.arrow_back_ios_new,
+                                  size: 20),
+                            ),
+                            const SizedBox(width: 4),
+                            const Text(
+                              'Review Product',
+                              style: TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.w700),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // ── Scrollable body ───────────────────────────────
+                      Expanded(
+                        child: ListView(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                          children: [
+                            // Barcode card
+                            _BarcodeCard(barcode: widget.barcode),
+
+                            const SizedBox(height: 20),
+
+                            // Captured Images title
+                            const Row(
+                              children: [
+                                Icon(Icons.image,
+                                    color: Color(0xff0A6475), size: 18),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Captured Images',
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700),
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 14),
+
+                            _CaptureCard(
+                              number: '01',
+                              title: 'Product\nPhoto',
+                              color: const Color(0xff88DDD6),
+                              image: _productImage,
+                              onTap: () =>
+                                  _viewImage(_productImage, 'Product Photo'),
+                              onReplace:
+                                  uploading ? null : () => _replaceImage(0),
+                            ),
+
+                            const SizedBox(height: 12),
+
+                            _CaptureCard(
+                              number: '02',
+                              title: 'Ingredients\nPhoto',
+                              color: const Color(0xffB39DDB),
+                              image: _ingredientsImage,
+                              onTap: () => _viewImage(
+                                  _ingredientsImage, 'Ingredients Photo'),
+                              onReplace:
+                                  uploading ? null : () => _replaceImage(1),
+                            ),
+
+                            const SizedBox(height: 12),
+
+                            _CaptureCard(
+                              number: '03',
+                              title: 'Nutrition\nPhoto',
+                              color: const Color(0xffFFCC80),
+                              image: _nutritionImage,
+                              onTap: () => _viewImage(
+                                  _nutritionImage, 'Nutrition Photo'),
+                              onReplace:
+                                  uploading ? null : () => _replaceImage(2),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
 
-                // Sticky submit bar
+                // ── Submit bar ────────────────────────────────────────────
                 Positioned(
                   bottom: 0,
                   left: 0,
@@ -250,53 +326,39 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
                   child: Container(
                     padding: EdgeInsets.fromLTRB(
                         16, 12, 16, MediaQuery.paddingOf(context).bottom + 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.08),
-                          blurRadius: 16,
-                          offset: const Offset(0, -4),
-                        ),
-                      ],
-                    ),
+                    color: Colors.white,
                     child: SizedBox(
                       height: 52,
-                      child: ElevatedButton(
+                      child: ElevatedButton.icon(
                         onPressed: uploading ? null : _submit,
+                        icon: uploading
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                    color: Colors.white, strokeWidth: 2),
+                              )
+                            : const Icon(Icons.upload_outlined, size: 20),
+                        label: Text(
+                          uploading ? 'Uploading…' : 'Submit Product',
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w700),
+                        ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
+                          backgroundColor: const Color(0xff4CC6B7),
                           foregroundColor: Colors.white,
                           disabledBackgroundColor:
-                              AppColors.primary.withValues(alpha: 0.5),
+                              const Color(0xff4CC6B7).withValues(alpha: 0.5),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14)),
                           elevation: 0,
                         ),
-                        child: uploading
-                            ? const SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                    color: Colors.white, strokeWidth: 2.5),
-                              )
-                            : const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.cloud_upload_rounded, size: 20),
-                                  SizedBox(width: 8),
-                                  Text('Submit Product',
-                                      style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600)),
-                                ],
-                              ),
                       ),
                     ),
                   ),
                 ),
 
-                // Full-screen upload overlay
+                // ── Upload overlay ────────────────────────────────────────
                 if (uploading)
                   Container(
                     color: Colors.black.withValues(alpha: 0.35),
@@ -305,11 +367,11 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           CircularProgressIndicator(color: Colors.white),
-                          SizedBox(height: 16),
+                          SizedBox(height: 14),
                           Text('Uploading…',
                               style: TextStyle(
                                   color: Colors.white,
-                                  fontSize: 16,
+                                  fontSize: 15,
                                   fontWeight: FontWeight.w500)),
                         ],
                       ),
@@ -319,37 +381,6 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
             );
           },
         ),
-      ),
-    );
-  }
-
-  Future<void> _showSuccessDialog() {
-    return showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(children: [
-          Icon(Icons.check_circle_rounded, color: Colors.green, size: 28),
-          SizedBox(width: 8),
-          Text('Uploaded!'),
-        ]),
-        content: const Text(
-          'Product data has been uploaded successfully.',
-          style: TextStyle(fontSize: 15),
-        ),
-        actions: [
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-            ),
-            child: const Text('Done'),
-          ),
-        ],
       ),
     );
   }
@@ -366,60 +397,98 @@ class _BarcodeCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        gradient: const LinearGradient(
+          colors: [Color(0xff4BD0C0), Color(0xffA6F3D9)],
+        ),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 10,
-              offset: const Offset(0, 3)),
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 12,
+          ),
         ],
       ),
-      child: Row(children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(10),
+      child: Row(
+        children: [
+          Container(
+            width: 70,
+            height: 70,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(Icons.qr_code_2,
+                size: 40, color: Color(0xff0A6475)),
           ),
-          child: const Icon(Icons.qr_code_rounded,
-              color: AppColors.primary, size: 26),
-        ),
-        const SizedBox(width: 14),
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Scanned Barcode',
-              style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey,
-                  fontWeight: FontWeight.w500)),
-          const SizedBox(height: 2),
-          Text(barcode,
-              style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'monospace',
-                  color: AppColors.textDark)),
-        ]),
-      ]),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.check, color: Colors.green, size: 14),
+                      SizedBox(width: 4),
+                      Text('Scanned Successfully',
+                          style: TextStyle(
+                              color: Colors.green,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text('Scanned Barcode',
+                    style: TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 4),
+                Text(
+                  barcode,
+                  style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      fontFamily: 'monospace'),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.green.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.verified, color: Colors.green, size: 28),
+          ),
+        ],
+      ),
     );
   }
 }
 
-// ── Image card ────────────────────────────────────────────────────────────────
+// ── Capture card ──────────────────────────────────────────────────────────────
 
-class _ImageCard extends StatelessWidget {
-  final String label;
-  final Color stepColor;
-  final IconData stepIcon;
+class _CaptureCard extends StatelessWidget {
+  final String number;
+  final String title;
+  final Color color;
   final File image;
   final VoidCallback onTap;
   final VoidCallback? onReplace;
 
-  const _ImageCard({
-    required this.label,
-    required this.stepColor,
-    required this.stepIcon,
+  const _CaptureCard({
+    required this.number,
+    required this.title,
+    required this.color,
     required this.image,
     required this.onTap,
     required this.onReplace,
@@ -428,79 +497,126 @@ class _ImageCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      height: 160,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 10,
-              offset: const Offset(0, 3)),
+              color: Colors.black.withValues(alpha: 0.07), blurRadius: 10),
         ],
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 10, 8),
-          child: Row(children: [
-            Icon(stepIcon, color: stepColor, size: 20),
-            const SizedBox(width: 8),
-            Text(label,
-                style:
-                    const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-            const Spacer(),
-            if (onReplace != null)
-              TextButton.icon(
-                onPressed: onReplace,
-                icon: const Icon(Icons.refresh_rounded, size: 16),
-                label: const Text('Replace', style: TextStyle(fontSize: 13)),
-                style: TextButton.styleFrom(
-                  foregroundColor: stepColor,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-              ),
-          ]),
-        ),
-        GestureDetector(
-          onTap: onTap,
-          child: Stack(children: [
-            ClipRRect(
-              borderRadius:
-                  const BorderRadius.vertical(bottom: Radius.circular(14)),
-              child: Image.file(
-                image,
-                width: double.infinity,
-                height: (MediaQuery.sizeOf(context).width * 0.55)
-                    .clamp(160.0, 260.0),
-                fit: BoxFit.cover,
+      child: Row(
+        children: [
+          // Left info panel
+          Container(
+            width: 110,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.18),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(18),
+                bottomLeft: Radius.circular(18),
               ),
             ),
-            Positioned(
-              bottom: 8,
-              right: 8,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.50),
-                  borderRadius: BorderRadius.circular(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  number,
+                  style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w700,
+                      color: color.withValues(alpha: 0.85),
+                      height: 1.0),
                 ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.zoom_in_rounded, color: Colors.white, size: 14),
-                    SizedBox(width: 4),
-                    Text('Tap to zoom',
-                        style: TextStyle(color: Colors.white, fontSize: 11)),
-                  ],
+                const SizedBox(height: 6),
+                Text(
+                  title,
+                  style: const TextStyle(
+                      fontSize: 13, fontWeight: FontWeight.w700, height: 1.3),
                 ),
+                const SizedBox(height: 6),
+                Container(
+                  width: 32,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                const Spacer(),
+                if (onReplace != null)
+                  SizedBox(
+                    height: 30,
+                    child: OutlinedButton.icon(
+                      onPressed: onReplace,
+                      icon: const Icon(Icons.refresh, size: 13),
+                      label: const Text('Replace',
+                          style: TextStyle(fontSize: 11)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: color.withValues(alpha: 0.9),
+                        side: BorderSide(
+                            color: color.withValues(alpha: 0.5), width: 1),
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+          // Right image
+          Expanded(
+            child: GestureDetector(
+              onTap: onTap,
+              child: Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                      topRight: Radius.circular(18),
+                      bottomRight: Radius.circular(18),
+                    ),
+                    child: Image.file(
+                      image,
+                      width: double.infinity,
+                      height: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 6,
+                    right: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.48),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.zoom_in_rounded,
+                              color: Colors.white, size: 12),
+                          SizedBox(width: 3),
+                          Text('Zoom',
+                              style: TextStyle(
+                                  color: Colors.white, fontSize: 10)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ]),
-        ),
-      ]),
+          ),
+        ],
+      ),
     );
   }
 }
