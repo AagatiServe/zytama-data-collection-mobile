@@ -56,6 +56,8 @@ class ProductUploadSuccess extends ProductState {
   ProductUploadSuccess(this.message);
 }
 
+class ProductUploadSavedOffline extends ProductState {}
+
 class ProductError extends ProductState {
   final String message;
   ProductError(this.message);

@@ -1,19 +1,18 @@
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zytama_data/features/auth/presentation/bloc/auth_bloc.dart';
+import '../bloc/dashboard_bloc.dart';
 import '../bloc/product_bloc.dart';
 import 'barcode_scanner_screen.dart';
 import 'multi_capture_screen.dart';
 import 'package:zytama_data/features/auth/presentation/screens/login_screen.dart';
 import 'notification_screen.dart';
 import 'product_review_screen.dart';
-
-class _ScanEntry {
-  final String barcode;
-  final DateTime time;
-  _ScanEntry({required this.barcode, required this.time});
-}
+import 'all_scans_screen.dart';
+import '../../../../core/di/injection_container.dart';
+import '../../../../core/sync/sync_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -23,9 +22,7 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  int _scanCount = 0;
   int _navIndex = 0;
-  final List<_ScanEntry> _recentScans = [];
 
   @override
   void initState() {
@@ -79,18 +76,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   String _formatDate(DateTime d) {
     const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec'
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
     ];
     return '${months[d.month - 1]} ${d.day}, ${d.year}';
   }
@@ -99,7 +86,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final d = DateTime.now().difference(t);
     if (d.inSeconds < 60) return 'Just now';
     if (d.inMinutes < 60) return '${d.inMinutes}m ago';
-    return '${d.inHours}h ago';
+    if (d.inHours < 24) return '${d.inHours}h ago';
+    return '${d.inDays}d ago';
   }
 
   @override
@@ -136,11 +124,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       if (state.productImageUrl != null) ...[
                         ClipRRect(
                           borderRadius: BorderRadius.circular(10),
-                          child: Image.network(state.productImageUrl!,
-                              height: 140,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const SizedBox()),
+                          child: CachedNetworkImage(
+                            imageUrl: state.productImageUrl!,
+                            width: double.maxFinite,
+                            height: 140,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, __, ___) => const SizedBox(),
+                          ),
                         ),
                         const SizedBox(height: 10),
                       ],
@@ -185,12 +175,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   initialProductImage: state.productImage,
                   initialIngredientsImage: state.ingredientsImage,
                   initialNutritionImage: state.nutritionImage,
-                  onSuccess: () => setState(() {
-                    _scanCount++;
-                    _recentScans.insert(
-                        0, _ScanEntry(barcode: cb, time: DateTime.now()));
-                    if (_recentScans.length > 10) _recentScans.removeLast();
-                  }),
+                  onSuccess: () {
+                    context
+                        .read<DashboardBloc>()
+                        .add(DashboardRefreshRequested());
+                  },
                 ),
               ));
               if (!context.mounted) return;
@@ -326,7 +315,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                     const SizedBox(height: 20),
 
-                    // ── Search bar ───────────────────────────────────────
+                    // ── Search bar ──────────────────────────────────────
                     Container(
                       height: 50,
                       decoration: BoxDecoration(
@@ -355,7 +344,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                     const SizedBox(height: 22),
 
-                    // ── Summary header ───────────────────────────────────
+                    // ── Summary header ──────────────────────────────────
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -385,38 +374,52 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                     const SizedBox(height: 12),
 
-                    // ── Summary cards ────────────────────────────────────
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _SummaryCard(
-                            icon: Icons.crop_free,
-                            count: '$_scanCount',
-                            label: 'Products\nScanned',
-                          ),
-                        ),
-                        SizedBox(width: 10),
-                        Expanded(
-                          child: _SummaryCard(
-                            icon: Icons.check_circle_outline,
-                            count: '$_scanCount',
-                            label: 'Successfully\nCaptured',
-                          ),
-                        ),
-                        SizedBox(width: 10),
-                        Expanded(
-                          child: _SummaryCard(
-                            icon: Icons.sync,
-                            count: '0',
-                            label: 'Pending\nSync',
-                          ),
-                        ),
-                      ],
+                    // ── Summary cards ───────────────────────────────────
+                    BlocBuilder<DashboardBloc, DashboardState>(
+                      builder: (context, state) {
+                        final total = state is DashboardLoaded
+                            ? state.totalProducts
+                            : 0;
+                        final captured = state is DashboardLoaded
+                            ? state.successfulCaptures
+                            : 0;
+                        return Row(
+                          children: [
+                            Expanded(
+                              child: _SummaryCard(
+                                icon: Icons.crop_free,
+                                count: '$total',
+                                label: 'Products\nScanned',
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: _SummaryCard(
+                                icon: Icons.check_circle_outline,
+                                count: '$captured',
+                                label: 'Successfully\nCaptured',
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: StreamBuilder<int>(
+                                stream: sl<SyncService>().pendingCount$,
+                                initialData: 0,
+                                builder: (context, snap) => _SummaryCard(
+                                  icon: Icons.sync,
+                                  count: '${snap.data ?? 0}',
+                                  label: 'Pending\nSync',
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
 
                     const SizedBox(height: 18),
 
-                    // ── New Scan button ──────────────────────────────────
+                    // ── New Scan button ─────────────────────────────────
                     BlocBuilder<ProductBloc, ProductState>(
                       builder: (context, state) {
                         final busy = state is ProductChecking ||
@@ -425,7 +428,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           onTap: busy ? null : _openScanner,
                           child: Container(
                             height: 76,
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 20),
                             decoration: BoxDecoration(
                               color: const Color(0xff005F73),
                               borderRadius: BorderRadius.circular(18),
@@ -485,53 +489,104 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                     const SizedBox(height: 22),
 
-                    // ── Recent Scans header ──────────────────────────────
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Recent Scans',
-                          style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xff1A1A1A)),
-                        ),
-                        if (_recentScans.isNotEmpty)
-                          TextButton(
-                            onPressed: () {},
-                            style: TextButton.styleFrom(
-                                padding: EdgeInsets.zero,
-                                minimumSize: Size.zero,
-                                tapTargetSize:
-                                    MaterialTapTargetSize.shrinkWrap),
-                            child: const Text(
-                              'View All',
+                    // ── Recent Scans header ─────────────────────────────
+                    BlocBuilder<DashboardBloc, DashboardState>(
+                      builder: (context, state) {
+                        final hasItems = state is DashboardLoaded &&
+                            state.items.isNotEmpty;
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Recent Scans',
                               style: TextStyle(
-                                  color: Color(0xff0B7285),
+                                  fontSize: 17,
                                   fontWeight: FontWeight.w700,
-                                  fontSize: 13),
+                                  color: Color(0xff1A1A1A)),
                             ),
-                          ),
-                      ],
+                            if (hasItems)
+                              TextButton(
+                                onPressed: () =>
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                          builder: (_) =>
+                                              const AllScansScreen()),
+                                    ),
+                                style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: Size.zero,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap),
+                                child: const Text(
+                                  'View All',
+                                  style: TextStyle(
+                                      color: Color(0xff0B7285),
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 13),
+                                ),
+                              ),
+                          ],
+                        );
+                      },
                     ),
 
                     const SizedBox(height: 10),
 
-                    // ── Recent Scans list ────────────────────────────────
-                    if (_recentScans.isEmpty)
-                      Container(
-                        padding: const EdgeInsets.symmetric(vertical: 32),
-                        alignment: Alignment.center,
-                        child: const Text(
-                          'No scans yet. Tap New Scan to start.',
-                          style: TextStyle(fontSize: 13, color: Colors.grey),
-                        ),
-                      )
-                    else
-                      ...(_recentScans.take(5).map((e) => _RecentScanCard(
-                            barcode: e.barcode,
-                            timeAgo: _timeAgo(e.time),
-                          ))),
+                    // ── Recent Scans list ───────────────────────────────
+                    BlocBuilder<DashboardBloc, DashboardState>(
+                      builder: (context, state) {
+                        if (state is DashboardLoading) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 32),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                  color: Color(0xff0B7285), strokeWidth: 2),
+                            ),
+                          );
+                        }
+                        if (state is DashboardError) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 24),
+                            child: Center(
+                              child: Text(state.message,
+                                  style: const TextStyle(
+                                      fontSize: 13, color: Colors.red)),
+                            ),
+                          );
+                        }
+                        if (state is DashboardLoaded) {
+                          if (state.items.isEmpty) {
+                            return Container(
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 32),
+                              alignment: Alignment.center,
+                              child: const Text(
+                                'No scans yet. Tap New Scan to start.',
+                                style: TextStyle(
+                                    fontSize: 13, color: Colors.grey),
+                              ),
+                            );
+                          }
+                          return Column(
+                            children: state.items
+                                .take(5)
+                                .map((item) => _RecentScanCard(
+                                      item: item,
+                                      timeAgo: _timeAgo(item.captureTime),
+                                    ))
+                                .toList(),
+                          );
+                        }
+                        return Container(
+                          padding: const EdgeInsets.symmetric(vertical: 32),
+                          alignment: Alignment.center,
+                          child: const Text(
+                            'No scans yet. Tap New Scan to start.',
+                            style: TextStyle(fontSize: 13, color: Colors.grey),
+                          ),
+                        );
+                      },
+                    ),
 
                     const SizedBox(height: 24),
                   ],
@@ -539,7 +594,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
 
-            // ── Checking overlay ─────────────────────────────────────────
+            // ── Checking overlay ──────────────────────────────────────
             BlocBuilder<ProductBloc, ProductState>(
               builder: (context, state) {
                 if (state is! ProductChecking) return const SizedBox.shrink();
@@ -611,7 +666,8 @@ class _SummaryCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.07), blurRadius: 8),
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.07), blurRadius: 8),
         ],
       ),
       child: Column(
@@ -626,17 +682,14 @@ class _SummaryCard extends StatelessWidget {
             child: Icon(icon, color: const Color(0xff0B7285), size: 22),
           ),
           const SizedBox(height: 8),
-          Text(
-            count,
-            style: const TextStyle(
-                fontSize: 26, fontWeight: FontWeight.w700, height: 1.1),
-          ),
+          Text(count,
+              style: const TextStyle(
+                  fontSize: 26, fontWeight: FontWeight.w700, height: 1.1)),
           const SizedBox(height: 2),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 11, color: Colors.black54),
-          ),
+          Text(label,
+              textAlign: TextAlign.center,
+              style:
+                  const TextStyle(fontSize: 11, color: Colors.black54)),
         ],
       ),
     );
@@ -646,13 +699,19 @@ class _SummaryCard extends StatelessWidget {
 // ── Recent Scan Card ──────────────────────────────────────────────────────────
 
 class _RecentScanCard extends StatelessWidget {
-  final String barcode;
+  final dynamic item;
   final String timeAgo;
 
-  const _RecentScanCard({required this.barcode, required this.timeAgo});
+  const _RecentScanCard({required this.item, required this.timeAgo});
 
   @override
   Widget build(BuildContext context) {
+    final name = (item.productName?.isNotEmpty == true)
+        ? item.productName!
+        : item.gtin as String;
+    final hasImage =
+        item.frontUrl != null && (item.frontUrl as String).isNotEmpty;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
@@ -660,20 +719,23 @@ class _RecentScanCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 6),
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05), blurRadius: 6),
         ],
       ),
       child: Row(
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: const Color(0xffD9F0EC),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(Icons.inventory_2_rounded,
-                color: Color(0xff0B7285), size: 22),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: hasImage
+                ? CachedNetworkImage(
+                    imageUrl: item.frontUrl as String,
+                    width: 48,
+                    height: 48,
+                    fit: BoxFit.cover,
+                    errorWidget: (_, __, ___) => _placeholderBox(),
+                  )
+                : _placeholderBox(),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -681,39 +743,61 @@ class _RecentScanCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  barcode,
+                  name,
                   style: const TextStyle(
                       fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      fontFamily: 'monospace'),
+                      fontWeight: FontWeight.w600),
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Product  •  $timeAgo',
+                  '${item.gtin}  •  $timeAgo',
                   style: const TextStyle(fontSize: 11, color: Colors.grey),
                 ),
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: const Color(0xffE5F6EE),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Text(
-              'Captured',
-              style: TextStyle(
-                  color: Color(0xff0E9F6E),
-                  fontWeight: FontWeight.w600,
-                  fontSize: 11),
-            ),
-          ),
+          _StatusBadge(status: item.status as String),
           const SizedBox(width: 6),
           const Icon(Icons.chevron_right, color: Color(0xff0B7285), size: 18),
         ],
       ),
+    );
+  }
+
+  Widget _placeholderBox() => Container(
+        width: 48,
+        height: 48,
+        color: const Color(0xffD9F0EC),
+        child: const Icon(Icons.inventory_2_rounded,
+            color: Color(0xff0B7285), size: 22),
+      );
+}
+
+// ── Status Badge ──────────────────────────────────────────────────────────────
+
+class _StatusBadge extends StatelessWidget {
+  final String status;
+  const _StatusBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, bg, fg) = switch (status) {
+      'approved' => ('Approved', const Color(0xffE5F6EE), const Color(0xff0E9F6E)),
+      'review_pending' => ('Pending', const Color(0xffFFF3E0), const Color(0xffF57C00)),
+      'not_approved' => ('Rejected', const Color(0xffFEECEC), const Color(0xffE53935)),
+      'failed' => ('Failed', const Color(0xffF5F5F5), Colors.black54),
+      _ => ('Captured', const Color(0xffE3F2FD), const Color(0xff1976D2)),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(label,
+          style: TextStyle(
+              color: fg, fontWeight: FontWeight.w600, fontSize: 11)),
     );
   }
 }

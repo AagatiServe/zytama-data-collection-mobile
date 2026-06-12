@@ -150,27 +150,31 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
         ));
   }
 
-  Future<void> _showSuccessDialog() {
+  Future<void> _showSuccessDialog({required bool offline}) {
+    final color = offline ? const Color(0xffF59E0B) : Colors.green;
+    final icon = offline ? Icons.cloud_off_rounded : Icons.check_circle_rounded;
+    final title = offline ? 'Saved Offline' : 'Uploaded!';
+    final message = offline
+        ? 'Product saved locally. It will sync automatically when internet is restored.'
+        : 'Product data has been uploaded successfully.';
+
     return showDialog(
       context: context,
       barrierDismissible: false,
       builder: (_) => AlertDialog(
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(children: [
-          Icon(Icons.check_circle_rounded, color: Colors.green, size: 26),
-          SizedBox(width: 8),
-          Text('Uploaded!'),
+        title: Row(children: [
+          Icon(icon, color: color, size: 26),
+          const SizedBox(width: 8),
+          Text(title),
         ]),
-        content: const Text(
-          'Product data has been uploaded successfully.',
-          style: TextStyle(fontSize: 14),
-        ),
+        content: Text(message, style: const TextStyle(fontSize: 14)),
         actions: [
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
+              backgroundColor: color,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
@@ -188,7 +192,13 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
       listener: (context, state) async {
         if (state is ProductUploadSuccess) {
           widget.onSuccess();
-          await _showSuccessDialog();
+          await _showSuccessDialog(offline: false);
+          if (!context.mounted) return;
+          context.read<ProductBloc>().add(ResetProduct());
+          Navigator.of(context).pop();
+        } else if (state is ProductUploadSavedOffline) {
+          widget.onSuccess();
+          await _showSuccessDialog(offline: true);
           if (!context.mounted) return;
           context.read<ProductBloc>().add(ResetProduct());
           Navigator.of(context).pop();
@@ -208,7 +218,7 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
         backgroundColor: const Color(0xffF8FBF8),
         body: BlocBuilder<ProductBloc, ProductState>(
           builder: (context, state) {
-            final uploading = state is ProductUploading;
+            final uploading = state is ProductUploading || state is ProductUploadSavedOffline || state is ProductUploadSuccess;
             return Stack(
               children: [
                 SafeArea(

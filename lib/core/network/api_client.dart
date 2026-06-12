@@ -6,14 +6,14 @@ import '../constants/app_constants.dart';
 class ApiClient {
   late final Dio _dio;
 
-  ApiClient() {
+  ApiClient(SharedPreferences prefs) {
     _dio = Dio(BaseOptions(
       baseUrl: ApiConstants.baseUrl,
       connectTimeout: const Duration(milliseconds: ApiConstants.connectTimeoutMs),
       receiveTimeout: const Duration(milliseconds: ApiConstants.receiveTimeoutMs),
       headers: {'Content-Type': 'application/json'},
     ));
-    _dio.interceptors.add(_AuthInterceptor());
+    _dio.interceptors.add(_AuthInterceptor(prefs));
     _dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true));
   }
 
@@ -28,13 +28,12 @@ class ApiClient {
 }
 
 class _AuthInterceptor extends Interceptor {
+  final SharedPreferences _prefs;
+  _AuthInterceptor(this._prefs);
+
   @override
-  void onRequest(
-    RequestOptions options,
-    RequestInterceptorHandler handler,
-  ) async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(AppConstants.tokenKey);
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    final token = _prefs.getString(AppConstants.tokenKey);
     if (token != null) {
       options.headers['Authorization'] = 'Bearer $token';
     }

@@ -40,6 +40,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           'device_id': _getOrCreateDeviceId(),
           'app_version': '1.2.0',
           'client_app': 'data_collection',
+          if (prefs.getString('fcm_token') != null)
+            'fcm_token': prefs.getString('fcm_token'),
         },
       );
       final body = response.data as Map<String, dynamic>;

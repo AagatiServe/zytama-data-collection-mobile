@@ -101,6 +101,16 @@ class _MultiCaptureScreenState extends State<MultiCaptureScreen> {
     });
   }
 
+  Future<void> _disposeAndPop() async {
+    if (!mounted) return;
+    _sheetTimer?.cancel();
+    final ctrl = _ctrl;
+    _ctrl = null;
+    if (mounted) setState(() {});
+    await ctrl?.dispose();
+    if (mounted) Navigator.of(context).pop(null);
+  }
+
   @override
   void dispose() {
     _sheetTimer?.cancel();
@@ -139,9 +149,14 @@ class _MultiCaptureScreenState extends State<MultiCaptureScreen> {
     final initialized = _ctrl?.value.isInitialized ?? false;
     final step = _steps[_step];
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _disposeAndPop();
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: Stack(
         fit: StackFit.expand,
         children: [
           if (initialized)
@@ -176,7 +191,7 @@ class _MultiCaptureScreenState extends State<MultiCaptureScreen> {
                     Row(
                       children: [
                         GestureDetector(
-                          onTap: () => Navigator.of(context).pop(null),
+                          onTap: _disposeAndPop,
                           child: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
@@ -326,6 +341,7 @@ class _MultiCaptureScreenState extends State<MultiCaptureScreen> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

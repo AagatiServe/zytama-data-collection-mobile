@@ -103,7 +103,11 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
         ingredientsImage: event.ingredientsImage,
         nutritionImage: event.nutritionImage,
       );
-      emit(ProductUploadSuccess(message));
+      if (message == '__offline__') {
+        emit(ProductUploadSavedOffline());
+      } else {
+        emit(ProductUploadSuccess(message));
+      }
     } catch (e) {
       emit(ProductError(e.toString().replaceAll('Exception: ', '')));
     }

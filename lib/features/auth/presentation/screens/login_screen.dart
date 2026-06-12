@@ -27,8 +27,8 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    // _emailCtrl.text = 'devag1-0001@zytama.com';
-    // _passCtrl.text = 'TestPassword@456';
+    _emailCtrl.text = 'devag1-0001@zytama.com';
+    _passCtrl.text = 'TestPassword@456';
   }
 
   @override
@@ -67,18 +67,20 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       },
       child: Scaffold(
-          resizeToAvoidBottomInset: true,
+          resizeToAvoidBottomInset: false,
           body: Container(
             height: double.infinity,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               image: DecorationImage(
-                  image: const AssetImage('assets/images/login_bg.png'),
+                  image: AssetImage('assets/images/login_bg.png'),
                   fit: BoxFit.cover),
             ),
             child: SafeArea(
               child: SingleChildScrollView(
                 keyboardDismissBehavior:
                     ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: EdgeInsets.only(
+                    bottom: MediaQuery.viewInsetsOf(context).bottom),
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: hPad),
                   child: Column(

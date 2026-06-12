@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:zytama_data/core/constants/app_colors.dart';
 
 class BarcodeScannerScreen extends StatefulWidget {
@@ -10,13 +11,31 @@ class BarcodeScannerScreen extends StatefulWidget {
 }
 
 class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
-  final MobileScannerController _controller = MobileScannerController();
+  MobileScannerController? _controller;
   bool _hasScanned = false;
   bool _isVerifying = false;
+  bool? _permissionGranted;
+
+  @override
+  void initState() {
+    super.initState();
+    _initCamera();
+  }
+
+  Future<void> _initCamera() async {
+    final status = await Permission.camera.request();
+    if (!mounted) return;
+    if (status.isGranted) {
+      _controller = MobileScannerController();
+      setState(() => _permissionGranted = true);
+    } else {
+      setState(() => _permissionGranted = false);
+    }
+  }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller?.dispose();
     super.dispose();
   }
 
@@ -45,21 +64,28 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
         ),
         title: const Text('Scan Barcode'),
         actions: [
-          IconButton(
-            tooltip: 'Toggle flash',
-            icon: const Icon(Icons.flash_on_rounded),
-            onPressed: () => _controller.toggleTorch(),
-          ),
-          IconButton(
-            tooltip: 'Flip camera',
-            icon: const Icon(Icons.flip_camera_ios_rounded),
-            onPressed: () => _controller.switchCamera(),
-          ),
+          if (_permissionGranted == true) ...[
+            IconButton(
+              tooltip: 'Toggle flash',
+              icon: const Icon(Icons.flash_on_rounded),
+              onPressed: () => _controller?.toggleTorch(),
+            ),
+            IconButton(
+              tooltip: 'Flip camera',
+              icon: const Icon(Icons.flip_camera_ios_rounded),
+              onPressed: () => _controller?.switchCamera(),
+            ),
+          ],
         ],
       ),
-      body: Stack(
+      body: _permissionGranted == null
+          ? const Center(child: CircularProgressIndicator(color: Colors.white))
+          : _permissionGranted == false
+              ? _PermissionDeniedView(onRetry: _initCamera)
+              : Stack(
+
         children: [
-          MobileScanner(controller: _controller, onDetect: _onDetect),
+          MobileScanner(controller: _controller!, onDetect: _onDetect),
 
           // Scan frame
           Center(
@@ -159,6 +185,57 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _PermissionDeniedView extends StatelessWidget {
+  final VoidCallback onRetry;
+  const _PermissionDeniedView({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.camera_alt_outlined, color: Colors.white54, size: 64),
+            const SizedBox(height: 20),
+            const Text(
+              'Camera permission required',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Please allow camera access to scan barcodes.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white54, fontSize: 14),
+            ),
+            const SizedBox(height: 28),
+            ElevatedButton.icon(
+              onPressed: () async {
+                await openAppSettings();
+                onRetry();
+              },
+              icon: const Icon(Icons.settings_outlined),
+              label: const Text('Open Settings'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.secondary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
