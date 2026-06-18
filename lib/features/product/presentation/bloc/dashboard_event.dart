@@ -15,3 +15,5 @@ class DashboardRefreshRequested extends DashboardEvent {
   final String? statusFilter;
   DashboardRefreshRequested({this.search, this.statusFilter});
 }
+
+class DashboardLocalIncrementRequested extends DashboardEvent {}

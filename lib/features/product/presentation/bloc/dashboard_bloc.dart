@@ -15,6 +15,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     on<DashboardLoadRequested>(_onLoad);
     on<DashboardLoadMoreRequested>(_onLoadMore);
     on<DashboardRefreshRequested>(_onRefresh);
+    on<DashboardLocalIncrementRequested>(_onLocalIncrement);
   }
 
   Future<void> _onLoad(
@@ -84,5 +85,18 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       search: event.search,
       statusFilter: event.statusFilter,
     ));
+  }
+
+  void _onLocalIncrement(
+    DashboardLocalIncrementRequested event,
+    Emitter<DashboardState> emit,
+  ) {
+    final current = state;
+    if (current is DashboardLoaded) {
+      emit(current.copyWith(
+        totalProducts: current.totalProducts + 1,
+        successfulCaptures: current.successfulCaptures + 1,
+      ));
+    }
   }
 }

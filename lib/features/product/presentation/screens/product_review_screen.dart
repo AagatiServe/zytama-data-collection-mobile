@@ -10,6 +10,7 @@ class ProductReviewScreen extends StatefulWidget {
   final File initialIngredientsImage;
   final File initialNutritionImage;
   final VoidCallback onSuccess;
+  final VoidCallback? onOfflineSuccess;
 
   const ProductReviewScreen({
     super.key,
@@ -18,6 +19,7 @@ class ProductReviewScreen extends StatefulWidget {
     required this.initialIngredientsImage,
     required this.initialNutritionImage,
     required this.onSuccess,
+    this.onOfflineSuccess,
   });
 
   @override
@@ -197,7 +199,11 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
           context.read<ProductBloc>().add(ResetProduct());
           Navigator.of(context).pop();
         } else if (state is ProductUploadSavedOffline) {
-          widget.onSuccess();
+          if (widget.onOfflineSuccess != null) {
+            widget.onOfflineSuccess!();
+          } else {
+            widget.onSuccess();
+          }
           await _showSuccessDialog(offline: true);
           if (!context.mounted) return;
           context.read<ProductBloc>().add(ResetProduct());

@@ -76,8 +76,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   String _formatDate(DateTime d) {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
     ];
     return '${months[d.month - 1]} ${d.day}, ${d.year}';
   }
@@ -179,6 +189,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     context
                         .read<DashboardBloc>()
                         .add(DashboardRefreshRequested());
+                  },
+                  onOfflineSuccess: () {
+                    context
+                        .read<DashboardBloc>()
+                        .add(DashboardLocalIncrementRequested());
                   },
                 ),
               ));
@@ -316,40 +331,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(height: 20),
 
                     // ── Search bar ──────────────────────────────────────
-                    Container(
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(14),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.07),
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: const TextField(
-                        decoration: InputDecoration(
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(vertical: 14),
-                          prefixIcon: Icon(Icons.search,
-                              size: 22, color: Color(0xff0B7285)),
-                          hintText: 'Search products…',
-                          hintStyle:
-                              TextStyle(fontSize: 14, color: Colors.grey),
-                        ),
-                      ),
-                    ),
+                    // Container(
+                    //   height: 50,
+                    //   decoration: BoxDecoration(
+                    //     color: Colors.white,
+                    //     borderRadius: BorderRadius.circular(14),
+                    //     boxShadow: [
+                    //       BoxShadow(
+                    //         color: Colors.black.withValues(alpha: 0.07),
+                    //         blurRadius: 8,
+                    //         offset: const Offset(0, 3),
+                    //       ),
+                    //     ],
+                    //   ),
+                    //   child: const TextField(
+                    //     decoration: InputDecoration(
+                    //       border: InputBorder.none,
+                    //       contentPadding: EdgeInsets.symmetric(vertical: 14),
+                    //       prefixIcon: Icon(Icons.search,
+                    //           size: 22, color: Color(0xff0B7285)),
+                    //       hintText: 'Search products…',
+                    //       hintStyle:
+                    //           TextStyle(fontSize: 14, color: Colors.grey),
+                    //     ),
+                    //   ),
+                    // ),
 
-                    const SizedBox(height: 22),
+                    // const SizedBox(height: 22),
 
                     // ── Summary header ──────────────────────────────────
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
-                          'Summary',
+                          'Today Summary',
                           style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w700,
@@ -377,9 +392,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     // ── Summary cards ───────────────────────────────────
                     BlocBuilder<DashboardBloc, DashboardState>(
                       builder: (context, state) {
-                        final total = state is DashboardLoaded
-                            ? state.totalProducts
-                            : 0;
+                        final total =
+                            state is DashboardLoaded ? state.totalProducts : 0;
                         final captured = state is DashboardLoaded
                             ? state.successfulCaptures
                             : 0;
@@ -428,8 +442,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           onTap: busy ? null : _openScanner,
                           child: Container(
                             height: 76,
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 20),
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
                             decoration: BoxDecoration(
                               color: const Color(0xff005F73),
                               borderRadius: BorderRadius.circular(18),
@@ -492,8 +505,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     // ── Recent Scans header ─────────────────────────────
                     BlocBuilder<DashboardBloc, DashboardState>(
                       builder: (context, state) {
-                        final hasItems = state is DashboardLoaded &&
-                            state.items.isNotEmpty;
+                        final hasItems =
+                            state is DashboardLoaded && state.items.isNotEmpty;
                         return Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -506,12 +519,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                             if (hasItems)
                               TextButton(
-                                onPressed: () =>
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                          builder: (_) =>
-                                              const AllScansScreen()),
-                                    ),
+                                onPressed: () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                      builder: (_) => const AllScansScreen()),
+                                ),
                                 style: TextButton.styleFrom(
                                     padding: EdgeInsets.zero,
                                     minimumSize: Size.zero,
@@ -557,13 +568,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         if (state is DashboardLoaded) {
                           if (state.items.isEmpty) {
                             return Container(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 32),
+                              padding: const EdgeInsets.symmetric(vertical: 32),
                               alignment: Alignment.center,
                               child: const Text(
                                 'No scans yet. Tap New Scan to start.',
-                                style: TextStyle(
-                                    fontSize: 13, color: Colors.grey),
+                                style:
+                                    TextStyle(fontSize: 13, color: Colors.grey),
                               ),
                             );
                           }
@@ -666,8 +676,7 @@ class _SummaryCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.07), blurRadius: 8),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.07), blurRadius: 8),
         ],
       ),
       child: Column(
@@ -688,8 +697,7 @@ class _SummaryCard extends StatelessWidget {
           const SizedBox(height: 2),
           Text(label,
               textAlign: TextAlign.center,
-              style:
-                  const TextStyle(fontSize: 11, color: Colors.black54)),
+              style: const TextStyle(fontSize: 11, color: Colors.black54)),
         ],
       ),
     );
@@ -719,8 +727,7 @@ class _RecentScanCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05), blurRadius: 6),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 6),
         ],
       ),
       child: Row(
@@ -745,8 +752,7 @@ class _RecentScanCard extends StatelessWidget {
                 Text(
                   name,
                   style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600),
+                      fontSize: 14, fontWeight: FontWeight.w600),
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
@@ -783,9 +789,21 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, bg, fg) = switch (status) {
-      'approved' => ('Approved', const Color(0xffE5F6EE), const Color(0xff0E9F6E)),
-      'review_pending' => ('Pending', const Color(0xffFFF3E0), const Color(0xffF57C00)),
-      'not_approved' => ('Rejected', const Color(0xffFEECEC), const Color(0xffE53935)),
+      'approved' => (
+          'Approved',
+          const Color(0xffE5F6EE),
+          const Color(0xff0E9F6E)
+        ),
+      'review_pending' => (
+          'Pending',
+          const Color(0xffFFF3E0),
+          const Color(0xffF57C00)
+        ),
+      'not_approved' => (
+          'Rejected',
+          const Color(0xffFEECEC),
+          const Color(0xffE53935)
+        ),
       'failed' => ('Failed', const Color(0xffF5F5F5), Colors.black54),
       _ => ('Captured', const Color(0xffE3F2FD), const Color(0xff1976D2)),
     };
@@ -796,8 +814,8 @@ class _StatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(label,
-          style: TextStyle(
-              color: fg, fontWeight: FontWeight.w600, fontSize: 11)),
+          style:
+              TextStyle(color: fg, fontWeight: FontWeight.w600, fontSize: 11)),
     );
   }
 }

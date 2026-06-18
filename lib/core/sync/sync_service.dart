@@ -4,6 +4,22 @@ import '../local/app_database.dart';
 import '../network/connectivity_service.dart';
 import '../../features/product/data/datasources/product_remote_datasource.dart';
 
+enum SyncStatus { idle, syncing, completed, failed }
+
+class SyncProgress {
+  final SyncStatus status;
+  final int total;
+  final int synced;
+  final int failed;
+
+  const SyncProgress({
+    this.status = SyncStatus.idle,
+    this.total = 0,
+    this.synced = 0,
+    this.failed = 0,
+  });
+}
+
 class SyncService {
   final AppDatabase _db;
   final ConnectivityService _connectivity;
@@ -11,6 +27,9 @@ class SyncService {
 
   StreamSubscription<bool>? _sub;
   bool _cancelled = false;
+
+  final _progressController = StreamController<SyncProgress>.broadcast();
+  Stream<SyncProgress> get syncProgress$ => _progressController.stream;
 
   SyncService(this._db, this._connectivity, this._remoteDataSource);
 
@@ -23,7 +42,6 @@ class SyncService {
       if (isOnline && !_cancelled) _syncAll();
     });
 
-    // Also attempt sync immediately if already online at start
     if (_connectivity.isOnline) _syncAll();
   }
 
@@ -37,38 +55,63 @@ class SyncService {
     final pending = await _db.getPendingUploads();
     if (pending.isEmpty) return;
 
+    final total = pending.length;
+    int synced = 0;
+    int failed = 0;
+
+    _progressController.add(SyncProgress(
+      status: SyncStatus.syncing,
+      total: total,
+      synced: 0,
+      failed: 0,
+    ));
+
     for (final record in pending) {
-      if (_cancelled) return; // stop mid-loop on logout
-      await _syncRecord(record);
+      if (_cancelled) return;
+      final success = await _syncRecord(record);
+      if (success) {
+        synced++;
+      } else {
+        failed++;
+      }
+      _progressController.add(SyncProgress(
+        status: SyncStatus.syncing,
+        total: total,
+        synced: synced,
+        failed: failed,
+      ));
     }
+
+    _progressController.add(SyncProgress(
+      status: failed == total ? SyncStatus.failed : SyncStatus.completed,
+      total: total,
+      synced: synced,
+      failed: failed,
+    ));
   }
 
-  Future<void> _syncRecord(PendingUpload record) async {
+  Future<bool> _syncRecord(PendingUpload record) async {
     try {
-      if (_cancelled) return;
+      if (_cancelled) return false;
 
-      // Check if someone else already uploaded this barcode
       final check = await _remoteDataSource.checkBarcode(record.barcode);
 
       if (check.found) {
-        // Already exists on server — discard local copy
-        await _deleteRecord(record);
-        return;
+        await _markSyncedAndDelete(record);
+        return true;
       }
 
-      if (_cancelled) return;
+      if (_cancelled) return false;
 
-      // Safe to upload
       final productFile = File(record.productImagePath);
       final ingredientsFile = File(record.ingredientsImagePath);
       final nutritionFile = File(record.nutritionImagePath);
 
-      // Skip if any image was deleted from device
       if (!productFile.existsSync() ||
           !ingredientsFile.existsSync() ||
           !nutritionFile.existsSync()) {
-        await _deleteRecord(record);
-        return;
+        await _markSyncedAndDelete(record);
+        return true;
       }
 
       await _remoteDataSource.uploadProduct(
@@ -78,19 +121,18 @@ class SyncService {
         nutritionImage: nutritionFile,
       );
 
-      await _deleteRecord(record);
+      await _markSyncedAndDelete(record);
+      return true;
     } catch (_) {
-      // Keep the record; will retry on next connectivity restore
+      return false;
     }
   }
 
-  Future<void> _deleteRecord(PendingUpload record) async {
-    // Delete image files from device storage
+  Future<void> _markSyncedAndDelete(PendingUpload record) async {
+    await _db.markAsSynced(record.id);
     _tryDelete(record.productImagePath);
     _tryDelete(record.ingredientsImagePath);
     _tryDelete(record.nutritionImagePath);
-
-    // Remove from DB
     await _db.deletePendingUpload(record.id);
   }
 
@@ -103,5 +145,6 @@ class SyncService {
 
   void dispose() {
     stop();
+    _progressController.close();
   }
 }

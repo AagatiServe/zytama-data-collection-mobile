@@ -57,6 +57,10 @@ class AppDatabase extends _$AppDatabase {
   Future<int> insertPendingUpload(PendingUploadsCompanion entry) =>
       into(pendingUploads).insert(entry);
 
+  Future<void> markAsSynced(int id) =>
+      (update(pendingUploads)..where((t) => t.id.equals(id)))
+          .write(const PendingUploadsCompanion(isSynced: Value(true)));
+
   Future<void> deletePendingUpload(int id) =>
       (delete(pendingUploads)..where((t) => t.id.equals(id))).go();
 

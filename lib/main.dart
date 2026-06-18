@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -6,6 +7,7 @@ import 'core/constants/app_colors.dart';
 import 'core/di/injection_container.dart' as di;
 import 'core/network/connectivity_service.dart';
 import 'core/notifications/fcm_service.dart';
+import 'core/sync/sync_service.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/product/presentation/bloc/dashboard_bloc.dart';
 import 'features/product/presentation/bloc/product_bloc.dart';
@@ -54,7 +56,9 @@ class App extends StatelessWidget {
             ),
           ),
         ),
-        home: const _ConnectivityWrapper(child: SplashScreen()),
+        builder: (context, child) =>
+            _ConnectivityWrapper(child: child ?? const SizedBox.shrink()),
+        home: const SplashScreen(),
       ),
     );
   }
@@ -70,12 +74,32 @@ class _ConnectivityWrapper extends StatefulWidget {
 
 class _ConnectivityWrapperState extends State<_ConnectivityWrapper> {
   late final ConnectivityService _connectivity;
+  late final SyncService _syncService;
+  StreamSubscription<bool>? _connectivitySub;
+  StreamSubscription<SyncProgress>? _syncSub;
+  SyncProgress? _currentSync;
 
   @override
   void initState() {
     super.initState();
     _connectivity = di.sl<ConnectivityService>();
-    _connectivity.onStatusChange.listen(_onStatusChange);
+    _syncService = di.sl<SyncService>();
+
+    _connectivitySub = _connectivity.onStatusChange.listen(_onStatusChange);
+    _syncSub = _syncService.syncProgress$.listen(_onSyncProgress);
+
+    if (!_connectivity.isOnline) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _onStatusChange(false);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _connectivitySub?.cancel();
+    _syncSub?.cancel();
+    super.dispose();
   }
 
   void _onStatusChange(bool isOnline) {
@@ -110,6 +134,136 @@ class _ConnectivityWrapperState extends State<_ConnectivityWrapper> {
     );
   }
 
+  void _onSyncProgress(SyncProgress progress) {
+    if (!mounted) return;
+    setState(() => _currentSync = progress);
+
+    if (progress.status == SyncStatus.completed) {
+      // Refresh dashboard to get updated server counts
+      try {
+        context.read<DashboardBloc>().add(DashboardRefreshRequested());
+      } catch (_) {}
+
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.clearSnackBars();
+      messenger.showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.cloud_done_rounded,
+                  color: Colors.white, size: 18),
+              const SizedBox(width: 10),
+              Text(
+                '${progress.synced} product${progress.synced > 1 ? 's' : ''} synced successfully!',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xff0B7285),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 4),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        ),
+      );
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) setState(() => _currentSync = null);
+      });
+    } else if (progress.status == SyncStatus.failed) {
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.clearSnackBars();
+      messenger.showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.cloud_off_rounded, color: Colors.white, size: 18),
+              SizedBox(width: 10),
+              Text(
+                'Sync failed. Will retry later.',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 4),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        ),
+      );
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) setState(() => _currentSync = null);
+      });
+    }
+  }
+
   @override
-  Widget build(BuildContext context) => widget.child;
+  Widget build(BuildContext context) {
+    final syncing = _currentSync != null &&
+        _currentSync!.status == SyncStatus.syncing;
+
+    return Stack(
+      children: [
+        widget.child,
+        if (syncing)
+          Positioned(
+            top: MediaQuery.paddingOf(context).top + 4,
+            left: 16,
+            right: 16,
+            child: Material(
+              elevation: 8,
+              borderRadius: BorderRadius.circular(14),
+              color: const Color(0xff0B7285),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Syncing ${_currentSync!.synced}/${_currentSync!.total}…',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: _currentSync!.total > 0
+                                  ? _currentSync!.synced /
+                                      _currentSync!.total
+                                  : 0,
+                              backgroundColor: Colors.white24,
+                              valueColor: const AlwaysStoppedAnimation<Color>(
+                                  Colors.white),
+                              minHeight: 4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 }
