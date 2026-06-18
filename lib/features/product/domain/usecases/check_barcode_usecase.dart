@@ -4,6 +4,6 @@ class CheckBarcodeUseCase {
   final ProductRepository repository;
   CheckBarcodeUseCase(this.repository);
 
-  Future<({bool found, String? message, String? productImageUrl})> call(String barcode) =>
+  Future<({bool matched, bool captureRequired, String? productName, String? brandName})> call(String barcode) =>
       repository.checkBarcodeExists(barcode);
 }

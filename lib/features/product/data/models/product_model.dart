@@ -1,21 +1,24 @@
 class ProductCheckModel {
-  final bool found;
-  final String? message;
-  final String? productImageUrl;
+  final bool matched;
+  final bool captureRequired;
+  final String? productName;
+  final String? brandName;
 
   const ProductCheckModel({
-    required this.found,
-    this.message,
-    this.productImageUrl,
+    required this.matched,
+    required this.captureRequired,
+    this.productName,
+    this.brandName,
   });
 
   factory ProductCheckModel.fromJson(Map<String, dynamic> json) {
     final data = json['data'] as Map<String, dynamic>?;
     final product = data?['product'] as Map<String, dynamic>?;
     return ProductCheckModel(
-      found: data?['found'] as bool? ?? false,
-      message: json['message'] as String?,
-      productImageUrl: product?['product_image'] as String?,
+      matched: data?['matched'] as bool? ?? false,
+      captureRequired: product?['capture_required'] as bool? ?? true,
+      productName: product?['product_name'] as String?,
+      brandName: product?['brand_name'] as String?,
     );
   }
 }
@@ -23,18 +26,11 @@ class ProductCheckModel {
 class UploadResponseModel {
   final bool success;
   final String message;
-  final String? productId;
+  final String? submissionId;
 
   const UploadResponseModel({
     required this.success,
     required this.message,
-    this.productId,
+    this.submissionId,
   });
-
-  factory UploadResponseModel.fromJson(Map<String, dynamic> json) =>
-      UploadResponseModel(
-        success: json['success'] as bool,
-        message: json['message'] as String,
-        productId: json['product_id'] as String?,
-      );
 }

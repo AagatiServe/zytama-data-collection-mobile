@@ -27,8 +27,10 @@ class DashboardItemModel {
       productName: json['product_name'] as String?,
       brandName: json['brand_name'] as String?,
       category: json['category'] as String?,
-      status: json['status'] as String,
-      captureTime: DateTime.parse(json['capture_time'] as String),
+      status: (json['display_status'] ?? json['status']) as String,
+      captureTime: DateTime.parse(
+        (json['submitted_at'] ?? json['capture_time']) as String,
+      ),
     );
   }
 }
@@ -50,15 +52,23 @@ class DashboardPageModel {
 
   factory DashboardPageModel.fromJson(Map<String, dynamic> json) {
     final data = json['data'] as Map<String, dynamic>;
-    final rawItems = data['items'] as List<dynamic>? ?? [];
+    final summary = data['today_summary'] as Map<String, dynamic>? ?? {};
+    final rawItems =
+        (data['recent_submissions'] ?? data['items']) as List<dynamic>? ?? [];
     return DashboardPageModel(
-      totalProducts: (data['total_products'] as num?)?.toInt() ?? 0,
-      successfulCaptures: (data['successful_captures'] as num?)?.toInt() ?? 0,
-      reviewPending: (data['review_pending'] as num?)?.toInt() ?? 0,
+      totalProducts: (summary['products_scanned'] as num?)?.toInt() ??
+          (data['total_products'] as num?)?.toInt() ??
+          0,
+      successfulCaptures: (summary['captured_successfully'] as num?)?.toInt() ??
+          (data['successful_captures'] as num?)?.toInt() ??
+          0,
+      reviewPending: (summary['pending_review'] as num?)?.toInt() ??
+          (data['review_pending'] as num?)?.toInt() ??
+          0,
       items: rawItems
           .map((e) => DashboardItemModel.fromJson(e as Map<String, dynamic>))
           .toList(),
-      nextCursor: data['next_cursor'] as String?,
+      nextCursor: null,
     );
   }
 }

@@ -20,6 +20,7 @@ class NotificationItemModel {
   });
 
   factory NotificationItemModel.fromJson(Map<String, dynamic> json) {
+    final timestamp = (json['created_at'] ?? json['raised_at']) as String;
     return NotificationItemModel(
       id: json['id'] as String,
       type: json['type'] as String,
@@ -30,7 +31,7 @@ class NotificationItemModel {
       readAt: json['read_at'] != null
           ? DateTime.parse(json['read_at'] as String)
           : null,
-      raisedAt: DateTime.parse(json['raised_at'] as String),
+      raisedAt: DateTime.parse(timestamp),
     );
   }
 }
@@ -52,7 +53,8 @@ class NotificationsPageModel {
       items: (data['items'] as List)
           .map((e) => NotificationItemModel.fromJson(e as Map<String, dynamic>))
           .toList(),
-      nextCursor: data['next_cursor'] as String?,
+      nextCursor:
+          data['has_more'] == false ? null : data['next_cursor'] as String?,
       unreadCount: data['unread_count'] as int? ?? 0,
     );
   }

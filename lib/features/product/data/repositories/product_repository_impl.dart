@@ -15,26 +15,29 @@ class ProductRepositoryImpl implements ProductRepository {
   ProductRepositoryImpl(this.remoteDataSource, this.db, this.connectivity);
 
   @override
-  Future<({bool found, String? message, String? productImageUrl})>
+  Future<({bool matched, bool captureRequired, String? productName, String? brandName})>
       checkBarcodeExists(String barcode) async {
     if (connectivity.isOnline) {
       final result = await remoteDataSource.checkBarcode(barcode);
       return (
-        found: result.found,
-        message: result.message,
-        productImageUrl: result.productImageUrl
+        matched: result.matched,
+        captureRequired: result.captureRequired,
+        productName: result.productName,
+        brandName: result.brandName,
       );
     } else {
       // Offline — check local cache
       final cached = await db.getCachedProduct(barcode);
       if (cached != null) {
+        // found=true in cache means product existed → no need to capture
         return (
-          found: cached.found,
-          message: cached.found ? 'Product found in local cache.' : null,
-          productImageUrl: cached.productImageUrl
+          matched: cached.found,
+          captureRequired: !cached.found,
+          productName: null,
+          brandName: null,
         );
       }
-      return (found: false, message: null, productImageUrl: null);
+      return (matched: false, captureRequired: true, productName: null, brandName: null);
     }
   }
 

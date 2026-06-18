@@ -4,6 +4,17 @@ import '../local/app_database.dart';
 import '../network/connectivity_service.dart';
 import '../../features/product/data/datasources/product_remote_datasource.dart';
 
+class SyncProgress {
+  final int current;
+  final int total;
+  final bool isDone;
+  const SyncProgress({
+    required this.current,
+    required this.total,
+    this.isDone = false,
+  });
+}
+
 class SyncService {
   final AppDatabase _db;
   final ConnectivityService _connectivity;
@@ -12,9 +23,17 @@ class SyncService {
   StreamSubscription<bool>? _sub;
   bool _cancelled = false;
 
+  final _progressController = StreamController<SyncProgress>.broadcast();
+  Stream<SyncProgress> get syncProgress$ => _progressController.stream;
+
   SyncService(this._db, this._connectivity, this._remoteDataSource);
 
   Stream<int> get pendingCount$ => _db.watchPendingCount();
+
+  Future<int> pendingUploadCount() async {
+    final pending = await _db.getPendingUploads();
+    return pending.length;
+  }
 
   void startListening() {
     _cancelled = false;
@@ -37,10 +56,19 @@ class SyncService {
     final pending = await _db.getPendingUploads();
     if (pending.isEmpty) return;
 
+    final total = pending.length;
+    _progressController.add(SyncProgress(current: 0, total: total));
+
+    int processed = 0;
     for (final record in pending) {
       if (_cancelled) return; // stop mid-loop on logout
       await _syncRecord(record);
+      processed++;
+      _progressController.add(SyncProgress(current: processed, total: total));
     }
+
+    _progressController
+        .add(SyncProgress(current: total, total: total, isDone: true));
   }
 
   Future<void> _syncRecord(PendingUpload record) async {
@@ -50,7 +78,7 @@ class SyncService {
       // Check if someone else already uploaded this barcode
       final check = await _remoteDataSource.checkBarcode(record.barcode);
 
-      if (check.found) {
+      if (check.matched && !check.captureRequired) {
         // Already exists on server — discard local copy
         await _deleteRecord(record);
         return;
@@ -103,5 +131,6 @@ class SyncService {
 
   void dispose() {
     stop();
+    _progressController.close();
   }
 }

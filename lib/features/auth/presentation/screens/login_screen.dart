@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../bloc/auth_bloc.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_strings.dart';
 import '../../../../core/utils/dialog_utils.dart';
 import 'package:zytama_data/features/product/presentation/screens/dashboard_screen.dart';
 import 'privacy_policy_screen.dart';
@@ -27,8 +28,10 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    _emailCtrl.text = 'devag1-0001@zytama.com';
-    _passCtrl.text = 'TestPassword@456';
+    // _emailCtrl.text = 'devag1-0001@zytama.com';
+    // _passCtrl.text = 'TestPassword@456';
+    _emailCtrl.text = 'developer.agent002@zytama.com';
+    _passCtrl.text = 'TestPassword#123';
   }
 
   @override
@@ -403,7 +406,7 @@ class _LoginScreenState extends State<LoginScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close',
+            child: const Text(AppStrings.close,
                 style: TextStyle(color: AppColors.textLight)),
           ),
           ElevatedButton.icon(
@@ -413,7 +416,7 @@ class _LoginScreenState extends State<LoginScreen> {
               if (await canLaunchUrl(uri)) launchUrl(uri);
             },
             icon: const Icon(Icons.open_in_browser_rounded, size: 16),
-            label: const Text('Open Web Portal'),
+            label: const Text(AppStrings.openWebPortal),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,

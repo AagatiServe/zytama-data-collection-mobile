@@ -39,10 +39,14 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     emit(ProductChecking(event.barcode));
     try {
       final result = await checkBarcodeUseCase(event.barcode);
-      emit(result.found
+      // matched=true AND capture_required=false → already in catalog, skip
+      // matched=true AND capture_required=true  → needs photos, proceed
+      // matched=false                           → new product, proceed
+      emit(result.matched && !result.captureRequired
           ? ProductExists(event.barcode,
-              message: result.message,
-              productImageUrl: result.productImageUrl)
+              message: result.productName != null
+                  ? '${result.brandName ?? ''} ${result.productName ?? ''}'.trim()
+                  : null)
           : ProductNotExists(event.barcode));
     } catch (e) {
       emit(ProductError(e.toString().replaceAll('Exception: ', '')));

@@ -1,7 +1,7 @@
 import 'dart:io';
 
 abstract class ProductRepository {
-  Future<({bool found, String? message, String? productImageUrl})> checkBarcodeExists(String barcode);
+  Future<({bool matched, bool captureRequired, String? productName, String? brandName})> checkBarcodeExists(String barcode);
   Future<String> uploadProduct({
     required String barcode,
     required File productImage,

@@ -7,6 +7,9 @@ class NotificationRepositoryImpl implements NotificationRepository {
   NotificationRepositoryImpl(this.dataSource);
 
   @override
-  Future<NotificationsPageModel> getNotifications({String? cursor}) =>
-      dataSource.getNotifications(cursor: cursor);
+  Future<NotificationsPageModel> getNotifications({
+    int limit = 20,
+    String? cursor,
+  }) =>
+      dataSource.getNotifications(limit: limit, cursor: cursor);
 }

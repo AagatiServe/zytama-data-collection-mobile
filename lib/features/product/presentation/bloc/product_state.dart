@@ -14,8 +14,7 @@ class ProductChecking extends ProductState {
 class ProductExists extends ProductState {
   final String barcode;
   final String? message;
-  final String? productImageUrl;
-  ProductExists(this.barcode, {this.message, this.productImageUrl});
+  ProductExists(this.barcode, {this.message});
 }
 
 class ProductNotExists extends ProductState {

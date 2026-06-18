@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zytama_data/core/constants/app_colors.dart';
+import 'package:zytama_data/core/constants/app_strings.dart';
 import 'package:zytama_data/core/di/injection_container.dart';
 import 'package:zytama_data/features/product/data/models/notification_model.dart';
 import 'package:zytama_data/features/product/presentation/bloc/notification_bloc.dart';
@@ -70,8 +71,7 @@ class _NotificationViewState extends State<_NotificationView> {
           children: [
             // ── Gradient header ──────────────────────────────────────────
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [Color(0xffDDF4E8), Color(0xffEEF9F0)],
@@ -86,9 +86,9 @@ class _NotificationViewState extends State<_NotificationView> {
                   const SizedBox(width: 4),
                   const Expanded(
                     child: Text(
-                      'Notifications',
-                      style: TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.w700),
+                      AppStrings.notifications,
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                     ),
                   ),
                   BlocBuilder<NotificationBloc, NotificationState>(
@@ -97,14 +97,13 @@ class _NotificationViewState extends State<_NotificationView> {
                           state.unreadCount > 0) {
                         return OutlinedButton.icon(
                           onPressed: () {},
-                          icon: const Icon(Icons.check_circle_outline,
-                              size: 16),
-                          label: const Text('Mark all read',
+                          icon:
+                              const Icon(Icons.check_circle_outline, size: 16),
+                          label: const Text(AppStrings.markAllRead,
                               style: TextStyle(fontSize: 12)),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: const Color(0xff0A6475),
-                            side: const BorderSide(
-                                color: Color(0xffB6E8DA)),
+                            side: const BorderSide(color: Color(0xffB6E8DA)),
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10)),
                             padding: const EdgeInsets.symmetric(
@@ -125,8 +124,8 @@ class _NotificationViewState extends State<_NotificationView> {
                 builder: (context, state) {
                   if (state is NotificationLoading) {
                     return const Center(
-                      child: CircularProgressIndicator(
-                          color: Color(0xff0A6475)),
+                      child:
+                          CircularProgressIndicator(color: Color(0xff0A6475)),
                     );
                   }
 
@@ -155,10 +154,8 @@ class _NotificationViewState extends State<_NotificationView> {
                       onRefresh: _onRefresh,
                       child: ListView.builder(
                         controller: _scrollCtrl,
-                        padding:
-                            const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                        itemCount:
-                            _itemCount(grouped, state.isLoadingMore),
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                        itemCount: _itemCount(grouped, state.isLoadingMore),
                         itemBuilder: (context, index) => _buildItem(
                             context, grouped, index, state.isLoadingMore),
                       ),
@@ -188,9 +185,9 @@ class _NotificationViewState extends State<_NotificationView> {
       final day = DateTime(d.year, d.month, d.day);
       final String label;
       if (day == today) {
-        label = 'Today';
+        label = AppStrings.today;
       } else if (day == yesterday) {
-        label = 'Yesterday';
+        label = AppStrings.yesterday;
       } else {
         label = '${_monthName(day.month)} ${day.day}, ${day.year}';
       }
@@ -238,12 +235,7 @@ class _NotificationViewState extends State<_NotificationView> {
   }
 
   static String _monthName(int month) {
-    const names = [
-      '',
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
-    return names[month];
+    return AppStrings.monthAbbreviations[month - 1];
   }
 }
 
@@ -260,14 +252,14 @@ class _SectionHeader extends StatelessWidget {
   const _SectionHeader({required this.label});
 
   Color get _color {
-    if (label == 'Today') return const Color(0xff0A6475);
-    if (label == 'Yesterday') return const Color(0xff4C63FF);
+    if (label == AppStrings.today) return const Color(0xff0A6475);
+    if (label == AppStrings.yesterday) return const Color(0xff4C63FF);
     return Colors.grey.shade500;
   }
 
   IconData get _icon {
-    if (label == 'Today') return Icons.calendar_month;
-    if (label == 'Yesterday') return Icons.calendar_today;
+    if (label == AppStrings.today) return Icons.calendar_month;
+    if (label == AppStrings.yesterday) return Icons.calendar_today;
     return Icons.date_range;
   }
 
@@ -289,8 +281,7 @@ class _SectionHeader extends StatelessWidget {
           const SizedBox(width: 10),
           Text(
             label,
-            style: const TextStyle(
-                fontSize: 15, fontWeight: FontWeight.w700),
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -378,8 +369,7 @@ class _NotificationCard extends StatelessWidget {
                   item.title,
                   style: TextStyle(
                     fontSize: 14,
-                    fontWeight:
-                        isUnread ? FontWeight.w700 : FontWeight.w500,
+                    fontWeight: isUnread ? FontWeight.w700 : FontWeight.w500,
                     color: const Color(0xff1A1A1A),
                   ),
                 ),
@@ -396,8 +386,7 @@ class _NotificationCard extends StatelessWidget {
                 Row(
                   children: [
                     Icon(Icons.access_time,
-                        size: 12,
-                        color: iconColor.withValues(alpha: 0.75)),
+                        size: 12, color: iconColor.withValues(alpha: 0.75)),
                     const SizedBox(width: 4),
                     Text(
                       timeLabel,
@@ -421,23 +410,41 @@ class _NotificationCard extends StatelessWidget {
   static (IconData, Color, Color) _resolveIcon(String type) {
     switch (type) {
       case 'ocr_completed':
-        return (Icons.document_scanner_rounded, AppColors.primary,
-            AppColors.background);
+        return (
+          Icons.document_scanner_rounded,
+          AppColors.primary,
+          AppColors.background
+        );
       case 'upload_success':
-        return (Icons.check_circle_rounded, AppColors.primary,
-            AppColors.background);
+        return (
+          Icons.check_circle_rounded,
+          AppColors.primary,
+          AppColors.background
+        );
       case 'duplicate_barcode':
-        return (Icons.warning_amber_rounded, const Color(0xFFE65100),
-            const Color(0xFFFFF3E0));
+        return (
+          Icons.warning_amber_rounded,
+          const Color(0xFFE65100),
+          const Color(0xFFFFF3E0)
+        );
       case 'streak':
-        return (Icons.local_fire_department_rounded,
-            const Color(0xFFD84315), const Color(0xFFFBE9E7));
+        return (
+          Icons.local_fire_department_rounded,
+          const Color(0xFFD84315),
+          const Color(0xFFFBE9E7)
+        );
       case 'goal_reached':
-        return (Icons.emoji_events_rounded, const Color(0xFFF9A825),
-            const Color(0xFFFFFDE7));
+        return (
+          Icons.emoji_events_rounded,
+          const Color(0xFFF9A825),
+          const Color(0xFFFFFDE7)
+        );
       default:
-        return (Icons.notifications_rounded, AppColors.secondary,
-            AppColors.background);
+        return (
+          Icons.notifications_rounded,
+          AppColors.secondary,
+          AppColors.background
+        );
     }
   }
 
@@ -445,20 +452,20 @@ class _NotificationCard extends StatelessWidget {
     final local = raisedAt.toLocal();
     final now = DateTime.now();
     final diff = now.difference(local);
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
-    if (diff.inHours < 24) return '${diff.inHours} hr ago';
+    if (diff.inMinutes < 1) return AppStrings.justNow;
+    if (diff.inMinutes < 60) return AppStrings.minutesAgoLong(diff.inMinutes);
+    if (diff.inHours < 24) return AppStrings.hoursAgoLong(diff.inHours);
 
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
     final day = DateTime(local.year, local.month, local.day);
     final hour = local.hour % 12 == 0 ? 12 : local.hour % 12;
     final minute = local.minute.toString().padLeft(2, '0');
-    final period = local.hour < 12 ? 'AM' : 'PM';
+    final period = local.hour < 12 ? AppStrings.am : AppStrings.pm;
     final timeStr = '$hour:$minute $period';
 
-    if (day == today) return 'Today, $timeStr';
-    if (day == yesterday) return 'Yesterday, $timeStr';
+    if (day == today) return AppStrings.notificationTimeToday(timeStr);
+    if (day == yesterday) return AppStrings.notificationTimeYesterday(timeStr);
     return timeStr;
   }
 }
@@ -476,14 +483,12 @@ class _EmptyView extends StatelessWidget {
         const Icon(Icons.notifications_none_rounded,
             size: 52, color: Colors.grey),
         const SizedBox(height: 14),
-        const Text('No notifications yet',
+        const Text(AppStrings.noNotificationsYet,
             textAlign: TextAlign.center,
             style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey)),
+                fontSize: 15, fontWeight: FontWeight.w600, color: Colors.grey)),
         const SizedBox(height: 5),
-        const Text("You're all caught up!",
+        const Text(AppStrings.allCaughtUp,
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 12, color: Colors.grey)),
       ],
@@ -510,8 +515,7 @@ class _ErrorView extends StatelessWidget {
             const SizedBox(height: 14),
             Text(message,
                 textAlign: TextAlign.center,
-                style:
-                    const TextStyle(fontSize: 13, color: Colors.grey)),
+                style: const TextStyle(fontSize: 13, color: Colors.grey)),
             const SizedBox(height: 18),
             FilledButton(
               style: FilledButton.styleFrom(
@@ -520,7 +524,7 @@ class _ErrorView extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12)),
               ),
               onPressed: onRetry,
-              child: const Text('Retry'),
+              child: const Text(AppStrings.retry),
             ),
           ],
         ),

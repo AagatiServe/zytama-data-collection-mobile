@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../../core/constants/app_strings.dart';
 import '../bloc/product_bloc.dart';
 
 class ProductReviewScreen extends StatefulWidget {
@@ -126,9 +127,10 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.pinch_rounded, color: Colors.white70, size: 14),
+                      Icon(Icons.pinch_rounded,
+                          color: Colors.white70, size: 14),
                       SizedBox(width: 5),
-                      Text('Pinch to zoom',
+                      Text(AppStrings.pinchToZoom,
                           style:
                               TextStyle(color: Colors.white70, fontSize: 11)),
                     ],
@@ -153,17 +155,15 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
   Future<void> _showSuccessDialog({required bool offline}) {
     final color = offline ? const Color(0xffF59E0B) : Colors.green;
     final icon = offline ? Icons.cloud_off_rounded : Icons.check_circle_rounded;
-    final title = offline ? 'Saved Offline' : 'Uploaded!';
-    final message = offline
-        ? 'Product saved locally. It will sync automatically when internet is restored.'
-        : 'Product data has been uploaded successfully.';
+    final title = offline ? AppStrings.savedOffline : AppStrings.uploaded;
+    final message =
+        offline ? AppStrings.productSavedOffline : AppStrings.productUploaded;
 
     return showDialog(
       context: context,
       barrierDismissible: false,
       builder: (_) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(children: [
           Icon(icon, color: color, size: 26),
           const SizedBox(width: 8),
@@ -179,7 +179,7 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Done'),
+            child: const Text(AppStrings.done),
           ),
         ],
       ),
@@ -218,7 +218,9 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
         backgroundColor: const Color(0xffF8FBF8),
         body: BlocBuilder<ProductBloc, ProductState>(
           builder: (context, state) {
-            final uploading = state is ProductUploading || state is ProductUploadSavedOffline || state is ProductUploadSuccess;
+            final uploading = state is ProductUploading ||
+                state is ProductUploadSavedOffline ||
+                state is ProductUploadSuccess;
             return Stack(
               children: [
                 SafeArea(
@@ -240,9 +242,7 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
                           children: [
                             IconButton(
                               onPressed: () {
-                                context
-                                    .read<ProductBloc>()
-                                    .add(ResetProduct());
+                                context.read<ProductBloc>().add(ResetProduct());
                                 Navigator.of(context).pop();
                               },
                               icon: const Icon(Icons.arrow_back_ios_new,
@@ -250,7 +250,7 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
                             ),
                             const SizedBox(width: 4),
                             const Text(
-                              'Review Product',
+                              AppStrings.reviewProduct,
                               style: TextStyle(
                                   fontSize: 18, fontWeight: FontWeight.w700),
                             ),
@@ -275,7 +275,7 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
                                     color: Color(0xff0A6475), size: 18),
                                 SizedBox(width: 8),
                                 Text(
-                                  'Captured Images',
+                                  AppStrings.capturedImages,
                                   style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w700),
@@ -287,11 +287,11 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
 
                             _CaptureCard(
                               number: '01',
-                              title: 'Product\nPhoto',
+                              title: AppStrings.productPhoto,
                               color: const Color(0xff88DDD6),
                               image: _productImage,
-                              onTap: () =>
-                                  _viewImage(_productImage, 'Product Photo'),
+                              onTap: () => _viewImage(
+                                  _productImage, AppStrings.productPhotoPlain),
                               onReplace:
                                   uploading ? null : () => _replaceImage(0),
                             ),
@@ -300,11 +300,11 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
 
                             _CaptureCard(
                               number: '02',
-                              title: 'Ingredients\nPhoto',
+                              title: AppStrings.ingredientsPhoto,
                               color: const Color(0xffB39DDB),
                               image: _ingredientsImage,
-                              onTap: () => _viewImage(
-                                  _ingredientsImage, 'Ingredients Photo'),
+                              onTap: () => _viewImage(_ingredientsImage,
+                                  AppStrings.ingredientsPhotoPlain),
                               onReplace:
                                   uploading ? null : () => _replaceImage(1),
                             ),
@@ -313,11 +313,11 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
 
                             _CaptureCard(
                               number: '03',
-                              title: 'Nutrition\nPhoto',
+                              title: AppStrings.nutritionPhoto,
                               color: const Color(0xffFFCC80),
                               image: _nutritionImage,
-                              onTap: () => _viewImage(
-                                  _nutritionImage, 'Nutrition Photo'),
+                              onTap: () => _viewImage(_nutritionImage,
+                                  AppStrings.nutritionPhotoPlain),
                               onReplace:
                                   uploading ? null : () => _replaceImage(2),
                             ),
@@ -350,7 +350,9 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
                               )
                             : const Icon(Icons.upload_outlined, size: 20),
                         label: Text(
-                          uploading ? 'Uploading…' : 'Submit Product',
+                          uploading
+                              ? AppStrings.uploading
+                              : AppStrings.submitProduct,
                           style: const TextStyle(
                               fontSize: 16, fontWeight: FontWeight.w700),
                         ),
@@ -378,7 +380,7 @@ class _ProductReviewScreenState extends State<ProductReviewScreen> {
                         children: [
                           CircularProgressIndicator(color: Colors.white),
                           SizedBox(height: 14),
-                          Text('Uploading…',
+                          Text(AppStrings.uploading,
                               style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 15,
@@ -427,8 +429,8 @@ class _BarcodeCard extends StatelessWidget {
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(Icons.qr_code_2,
-                size: 40, color: Color(0xff0A6475)),
+            child:
+                const Icon(Icons.qr_code_2, size: 40, color: Color(0xff0A6475)),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -447,7 +449,7 @@ class _BarcodeCard extends StatelessWidget {
                     children: [
                       Icon(Icons.check, color: Colors.green, size: 14),
                       SizedBox(width: 4),
-                      Text('Scanned Successfully',
+                      Text(AppStrings.scannedSuccessfully,
                           style: TextStyle(
                               color: Colors.green,
                               fontWeight: FontWeight.w600,
@@ -456,9 +458,9 @@ class _BarcodeCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text('Scanned Barcode',
-                    style: TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w600)),
+                const Text(AppStrings.scannedBarcode,
+                    style:
+                        TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 4),
                 Text(
                   barcode,
@@ -562,7 +564,7 @@ class _CaptureCard extends StatelessWidget {
                     child: OutlinedButton.icon(
                       onPressed: onReplace,
                       icon: const Icon(Icons.refresh, size: 13),
-                      label: const Text('Replace',
+                      label: const Text(AppStrings.replace,
                           style: TextStyle(fontSize: 11)),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: color.withValues(alpha: 0.9),
@@ -614,9 +616,9 @@ class _CaptureCard extends StatelessWidget {
                           Icon(Icons.zoom_in_rounded,
                               color: Colors.white, size: 12),
                           SizedBox(width: 3),
-                          Text('Zoom',
-                              style: TextStyle(
-                                  color: Colors.white, fontSize: 10)),
+                          Text(AppStrings.zoom,
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 10)),
                         ],
                       ),
                     ),

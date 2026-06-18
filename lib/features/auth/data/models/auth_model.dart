@@ -17,13 +17,14 @@ class AuthModel {
 
   factory AuthModel.fromJson(Map<String, dynamic> json, {required String email}) {
     final data = json['data'] as Map<String, dynamic>;
+    final user = data['user'] as Map<String, dynamic>;
     return AuthModel(
       token: data['access_token'] as String,
       refreshToken: data['refresh_token'] as String,
       email: email,
-      name: data['display_name'] as String,
-      agentCode: data['agent_code'] as String,
-      id: data['id'] as String,
+      name: user['display_name'] as String,
+      agentCode: user['agent_code'] as String? ?? '',
+      id: user['id'] as String,
     );
   }
 }

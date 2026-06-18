@@ -11,7 +11,9 @@ import 'package:zytama_data/features/auth/presentation/screens/login_screen.dart
 import 'notification_screen.dart';
 import 'product_review_screen.dart';
 import 'all_scans_screen.dart';
+import '../../../../core/constants/app_strings.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/network/connectivity_service.dart';
 import '../../../../core/sync/sync_service.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -42,7 +44,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         : context.read<ProductBloc>().add(ResetProduct());
   }
 
-  void _confirmLogout(BuildContext context) {
+  Future<void> _confirmLogout(BuildContext context) async {
+    if (await _showPendingSyncLogoutMessage(context)) return;
+    if (!context.mounted) return;
+
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -50,15 +55,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
         title: const Row(children: [
           Icon(Icons.logout_rounded, color: Colors.red, size: 22),
           SizedBox(width: 8),
-          Text('Logout'),
+          Text(AppStrings.logout),
         ]),
-        content: const Text('Are you sure you want to sign out?'),
+        content: const Text(AppStrings.logoutConfirmation),
         actions: [
           TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel')),
+              child: const Text(AppStrings.cancel)),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
+              if (await _showPendingSyncLogoutMessage(context)) {
+                if (context.mounted) Navigator.of(context).pop();
+                return;
+              }
+              if (!context.mounted) return;
               Navigator.of(context).pop();
               context.read<AuthBloc>().add(LogoutRequested());
             },
@@ -67,27 +77,64 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10))),
-            child: const Text('Logout'),
+            child: const Text(AppStrings.logout),
           ),
         ],
       ),
     );
   }
 
+  Future<bool> _showPendingSyncLogoutMessage(BuildContext context) async {
+    final pendingCount = await sl<SyncService>().pendingUploadCount();
+    if (pendingCount == 0) return false;
+    if (!context.mounted) return true;
+
+    final online = sl<ConnectivityService>().isOnline;
+    final message = AppStrings.logoutPendingMessage(
+      pendingCount: pendingCount,
+      isOnline: online,
+    );
+
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.info_outline_rounded,
+                  color: Colors.white, size: 18),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xff0B7285),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 5),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        ),
+      );
+
+    return true;
+  }
+
   String _formatDate(DateTime d) {
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-    return '${months[d.month - 1]} ${d.day}, ${d.year}';
+    final month = AppStrings.monthAbbreviations[d.month - 1];
+    return '$month ${d.day}, ${d.year}';
   }
 
   String _timeAgo(DateTime t) {
     final d = DateTime.now().difference(t);
-    if (d.inSeconds < 60) return 'Just now';
-    if (d.inMinutes < 60) return '${d.inMinutes}m ago';
-    if (d.inHours < 24) return '${d.inHours}h ago';
-    return '${d.inDays}d ago';
+    if (d.inSeconds < 60) return AppStrings.justNow;
+    if (d.inMinutes < 60) return AppStrings.minutesAgo(d.inMinutes);
+    if (d.inHours < 24) return AppStrings.hoursAgo(d.inHours);
+    return AppStrings.daysAgo(d.inDays);
   }
 
   @override
@@ -115,27 +162,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Icon(Icons.warning_amber_rounded,
                         color: Colors.orange, size: 24),
                     SizedBox(width: 8),
-                    Text('Already Exists'),
+                    Text(AppStrings.alreadyExists),
                   ]),
                   content: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (state.productImageUrl != null) ...[
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: CachedNetworkImage(
-                            imageUrl: state.productImageUrl!,
-                            width: double.maxFinite,
-                            height: 140,
-                            fit: BoxFit.cover,
-                            errorWidget: (_, __, ___) => const SizedBox(),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                      ],
-                      Text(state.message ??
-                          'This product is already in the database.'),
+                      Text(
+                          state.message ?? AppStrings.productAlreadyInDatabase),
                       const SizedBox(height: 8),
                       _BarcodeChip(barcode: state.barcode),
                     ],
@@ -143,7 +177,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   actions: [
                     ElevatedButton(
                         onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('OK')),
+                        child: const Text(AppStrings.ok)),
                   ],
                 ),
               );
@@ -168,6 +202,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 _openScanner();
               }
             } else if (state is ReadyToReview) {
+              if (!sl<ConnectivityService>().isOnline) {
+                // Offline: skip review, save directly to local DB
+                context.read<ProductBloc>().add(SubmitProduct(
+                      productImage: state.productImage,
+                      ingredientsImage: state.ingredientsImage,
+                      nutritionImage: state.nutritionImage,
+                    ));
+                return;
+              }
               final cb = state.barcode;
               await Navigator.of(context).push(MaterialPageRoute(
                 builder: (_) => ProductReviewScreen(
@@ -186,7 +229,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
               if (context.read<ProductBloc>().state is ProductInitial) {
                 _openScanner();
               }
+            } else if (state is ProductUploadSavedOffline) {
+              ScaffoldMessenger.of(context)
+                ..clearSnackBars()
+                ..showSnackBar(
+                  SnackBar(
+                    content: const Row(
+                      children: [
+                        Icon(Icons.cloud_off_rounded,
+                            color: Colors.white, size: 18),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            AppStrings.offlineScanSaved,
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
+                    ),
+                    backgroundColor: Colors.orange.shade700,
+                    behavior: SnackBarBehavior.floating,
+                    duration: const Duration(seconds: 5),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  ),
+                );
+              context.read<ProductBloc>().add(ResetProduct());
+              _openScanner();
             } else if (state is ProductError) {
+              // Only handle if dashboard is the top route.
+              // When ProductReviewScreen is open it handles the error itself;
+              // acting here would call ResetProduct and null out _barcode,
+              // causing a null-check crash on the user's retry.
+              if (ModalRoute.of(context)?.isCurrent != true) return;
               await showDialog(
                 context: context,
                 builder: (_) => AlertDialog(
@@ -195,13 +271,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   title: const Row(children: [
                     Icon(Icons.error_rounded, color: Colors.red, size: 22),
                     SizedBox(width: 8),
-                    Text('Error'),
+                    Text(AppStrings.error),
                   ]),
                   content: Text(state.message),
                   actions: [
                     TextButton(
                         onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('OK'))
+                        child: const Text(AppStrings.ok))
                   ],
                 ),
               );
@@ -254,7 +330,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             : null;
                         final name = user?.name.isNotEmpty == true
                             ? user!.name
-                            : 'Agent';
+                            : AppStrings.helloFallbackName;
                         final initial = name[0].toUpperCase();
                         return Row(
                           children: [
@@ -277,7 +353,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Hello, $name',
+                                    AppStrings.hello(name),
                                     style: const TextStyle(
                                       fontSize: 20,
                                       fontWeight: FontWeight.w700,
@@ -286,7 +362,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   ),
                                   const SizedBox(height: 2),
                                   const Text(
-                                    "Let's collect accurate ingredient data.",
+                                    AppStrings.dashboardSubtitle,
                                     style: TextStyle(
                                         fontSize: 12, color: Colors.grey),
                                   ),
@@ -316,40 +392,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(height: 20),
 
                     // ── Search bar ──────────────────────────────────────
-                    Container(
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(14),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.07),
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: const TextField(
-                        decoration: InputDecoration(
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(vertical: 14),
-                          prefixIcon: Icon(Icons.search,
-                              size: 22, color: Color(0xff0B7285)),
-                          hintText: 'Search products…',
-                          hintStyle:
-                              TextStyle(fontSize: 14, color: Colors.grey),
-                        ),
-                      ),
-                    ),
+                    // Container(
+                    //   height: 50,
+                    //   decoration: BoxDecoration(
+                    //     color: Colors.white,
+                    //     borderRadius: BorderRadius.circular(14),
+                    //     boxShadow: [
+                    //       BoxShadow(
+                    //         color: Colors.black.withValues(alpha: 0.07),
+                    //         blurRadius: 8,
+                    //         offset: const Offset(0, 3),
+                    //       ),
+                    //     ],
+                    //   ),
+                    //   child: const TextField(
+                    //     decoration: InputDecoration(
+                    //       border: InputBorder.none,
+                    //       contentPadding: EdgeInsets.symmetric(vertical: 14),
+                    //       prefixIcon: Icon(Icons.search,
+                    //           size: 22, color: Color(0xff0B7285)),
+                    //       hintText: AppStrings.searchProductsHint,
+                    //       hintStyle:
+                    //           TextStyle(fontSize: 14, color: Colors.grey),
+                    //     ),
+                    //   ),
+                    // ),
 
-                    const SizedBox(height: 22),
+                    // const SizedBox(height: 22),
 
                     // ── Summary header ──────────────────────────────────
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
-                          'Summary',
+                          AppStrings.summary,
                           style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w700,
@@ -377,9 +453,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     // ── Summary cards ───────────────────────────────────
                     BlocBuilder<DashboardBloc, DashboardState>(
                       builder: (context, state) {
-                        final total = state is DashboardLoaded
-                            ? state.totalProducts
-                            : 0;
+                        final total =
+                            state is DashboardLoaded ? state.totalProducts : 0;
                         final captured = state is DashboardLoaded
                             ? state.successfulCaptures
                             : 0;
@@ -389,7 +464,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               child: _SummaryCard(
                                 icon: Icons.crop_free,
                                 count: '$total',
-                                label: 'Products\nScanned',
+                                label: AppStrings.productsScanned,
                               ),
                             ),
                             const SizedBox(width: 10),
@@ -397,7 +472,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               child: _SummaryCard(
                                 icon: Icons.check_circle_outline,
                                 count: '$captured',
-                                label: 'Successfully\nCaptured',
+                                label: AppStrings.successfullyCaptured,
                               ),
                             ),
                             const SizedBox(width: 10),
@@ -408,7 +483,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 builder: (context, snap) => _SummaryCard(
                                   icon: Icons.sync,
                                   count: '${snap.data ?? 0}',
-                                  label: 'Pending\nSync',
+                                  label: AppStrings.pendingSyncLabel,
                                 ),
                               ),
                             ),
@@ -428,8 +503,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           onTap: busy ? null : _openScanner,
                           child: Container(
                             height: 76,
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 20),
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
                             decoration: BoxDecoration(
                               color: const Color(0xff005F73),
                               borderRadius: BorderRadius.circular(18),
@@ -451,7 +525,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        busy ? 'Processing…' : 'New Scan',
+                                        busy
+                                            ? AppStrings.processing
+                                            : AppStrings.newScan,
                                         style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 18,
@@ -461,8 +537,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       const SizedBox(height: 2),
                                       Text(
                                         busy
-                                            ? 'Please wait'
-                                            : 'Scan ingredient label using camera',
+                                            ? AppStrings.pleaseWait
+                                            : AppStrings.scanIngredientLabel,
                                         style: const TextStyle(
                                             color: Colors.white70,
                                             fontSize: 12),
@@ -492,13 +568,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     // ── Recent Scans header ─────────────────────────────
                     BlocBuilder<DashboardBloc, DashboardState>(
                       builder: (context, state) {
-                        final hasItems = state is DashboardLoaded &&
-                            state.items.isNotEmpty;
+                        final hasItems =
+                            state is DashboardLoaded && state.items.isNotEmpty;
                         return Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text(
-                              'Recent Scans',
+                              AppStrings.recentScans,
                               style: TextStyle(
                                   fontSize: 17,
                                   fontWeight: FontWeight.w700,
@@ -506,19 +582,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                             if (hasItems)
                               TextButton(
-                                onPressed: () =>
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                          builder: (_) =>
-                                              const AllScansScreen()),
-                                    ),
+                                onPressed: () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                      builder: (_) => const AllScansScreen()),
+                                ),
                                 style: TextButton.styleFrom(
                                     padding: EdgeInsets.zero,
                                     minimumSize: Size.zero,
                                     tapTargetSize:
                                         MaterialTapTargetSize.shrinkWrap),
                                 child: const Text(
-                                  'View All',
+                                  AppStrings.viewAll,
                                   style: TextStyle(
                                       color: Color(0xff0B7285),
                                       fontWeight: FontWeight.w700,
@@ -557,13 +631,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         if (state is DashboardLoaded) {
                           if (state.items.isEmpty) {
                             return Container(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 32),
+                              padding: const EdgeInsets.symmetric(vertical: 32),
                               alignment: Alignment.center,
                               child: const Text(
-                                'No scans yet. Tap New Scan to start.',
-                                style: TextStyle(
-                                    fontSize: 13, color: Colors.grey),
+                                AppStrings.noScansYet,
+                                style:
+                                    TextStyle(fontSize: 13, color: Colors.grey),
                               ),
                             );
                           }
@@ -581,7 +654,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           padding: const EdgeInsets.symmetric(vertical: 32),
                           alignment: Alignment.center,
                           child: const Text(
-                            'No scans yet. Tap New Scan to start.',
+                            AppStrings.noScansYet,
                             style: TextStyle(fontSize: 13, color: Colors.grey),
                           ),
                         );
@@ -620,7 +693,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           const CircularProgressIndicator(
                               color: Color(0xff0B7285), strokeWidth: 3),
                           const SizedBox(height: 16),
-                          const Text('Checking product…',
+                          const Text(AppStrings.checkingProduct,
                               style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w700,
@@ -666,8 +739,7 @@ class _SummaryCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.07), blurRadius: 8),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.07), blurRadius: 8),
         ],
       ),
       child: Column(
@@ -688,8 +760,7 @@ class _SummaryCard extends StatelessWidget {
           const SizedBox(height: 2),
           Text(label,
               textAlign: TextAlign.center,
-              style:
-                  const TextStyle(fontSize: 11, color: Colors.black54)),
+              style: const TextStyle(fontSize: 11, color: Colors.black54)),
         ],
       ),
     );
@@ -719,8 +790,7 @@ class _RecentScanCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05), blurRadius: 6),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 6),
         ],
       ),
       child: Row(
@@ -745,13 +815,12 @@ class _RecentScanCard extends StatelessWidget {
                 Text(
                   name,
                   style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600),
+                      fontSize: 14, fontWeight: FontWeight.w600),
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${item.gtin}  •  $timeAgo',
+                  '${item.gtin}${AppStrings.barcodeSeparator}$timeAgo',
                   style: const TextStyle(fontSize: 11, color: Colors.grey),
                 ),
               ],
@@ -783,11 +852,27 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, bg, fg) = switch (status) {
-      'approved' => ('Approved', const Color(0xffE5F6EE), const Color(0xff0E9F6E)),
-      'review_pending' => ('Pending', const Color(0xffFFF3E0), const Color(0xffF57C00)),
-      'not_approved' => ('Rejected', const Color(0xffFEECEC), const Color(0xffE53935)),
-      'failed' => ('Failed', const Color(0xffF5F5F5), Colors.black54),
-      _ => ('Captured', const Color(0xffE3F2FD), const Color(0xff1976D2)),
+      'approved' => (
+          AppStrings.approved,
+          const Color(0xffE5F6EE),
+          const Color(0xff0E9F6E)
+        ),
+      'review_pending' => (
+          AppStrings.pending,
+          const Color(0xffFFF3E0),
+          const Color(0xffF57C00)
+        ),
+      'not_approved' => (
+          AppStrings.rejected,
+          const Color(0xffFEECEC),
+          const Color(0xffE53935)
+        ),
+      'failed' => (AppStrings.failed, const Color(0xffF5F5F5), Colors.black54),
+      _ => (
+          AppStrings.captured,
+          const Color(0xffE3F2FD),
+          const Color(0xff1976D2)
+        ),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -796,8 +881,8 @@ class _StatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(label,
-          style: TextStyle(
-              color: fg, fontWeight: FontWeight.w600, fontSize: 11)),
+          style:
+              TextStyle(color: fg, fontWeight: FontWeight.w600, fontSize: 11)),
     );
   }
 }

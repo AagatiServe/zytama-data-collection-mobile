@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/constants/api_constants.dart';
+import '../../../../core/constants/app_strings.dart';
 import '../../../../core/network/api_client.dart';
 import '../models/auth_model.dart';
 
@@ -39,22 +40,23 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           'password': password,
           'device_id': _getOrCreateDeviceId(),
           'app_version': '1.2.0',
-          'client_app': 'data_collection',
+          "client_app": "agent_android",
           if (prefs.getString('fcm_token') != null)
             'fcm_token': prefs.getString('fcm_token'),
         },
       );
       final body = response.data as Map<String, dynamic>;
       if (body['success'] != true) {
-        throw Exception(body['message'] ?? 'Login failed');
+        throw Exception(body['message'] ?? AppStrings.loginFailed);
       }
       return AuthModel.fromJson(body, email: email);
     } on DioException catch (e) {
       final body = e.response?.data;
-      final msg = (body is Map ? body['message'] : null) ??
-          e.message ??
-          'Login failed';
-      throw Exception(msg);
+      String? msg;
+      if (body is Map) {
+        msg = (body['error'] as Map?)?['message'] as String?;
+      }
+      throw Exception(msg ?? e.message ?? AppStrings.loginFailed);
     }
   }
 }

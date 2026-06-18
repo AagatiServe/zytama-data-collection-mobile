@@ -14,6 +14,7 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<UserEntity> login(String email, String password) async {
     final model = await remoteDataSource.login(email, password);
     await prefs.setString(AppConstants.tokenKey, model.token);
+    await prefs.setString(AppConstants.refreshTokenKey, model.refreshToken);
     await prefs.setString(AppConstants.userNameKey, model.name);
     await prefs.setString(AppConstants.userEmailKey, model.email);
     await prefs.setString(AppConstants.agentCodeKey, model.agentCode);

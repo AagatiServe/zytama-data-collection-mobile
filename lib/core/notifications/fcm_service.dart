@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../constants/app_strings.dart';
+
 const _fcmTokenKey = 'fcm_token';
 
 const AndroidNotificationChannel _channel = AndroidNotificationChannel(
@@ -21,7 +23,8 @@ final FlutterLocalNotificationsPlugin _localNotifications =
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  debugPrint('Background message: ${message.messageId} | data: ${message.data}');
+  debugPrint(
+      'Background message: ${message.messageId} | data: ${message.data}');
 }
 
 class FcmService {
@@ -139,7 +142,7 @@ class FcmService {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('OK'),
+            child: const Text(AppStrings.ok),
           ),
         ],
       ),
