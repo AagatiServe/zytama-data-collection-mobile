@@ -27,6 +27,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
+    context.read<DashboardBloc>().add(DashboardLoadRequested());
     WidgetsBinding.instance.addPostFrameCallback((_) => _openScanner());
   }
 
@@ -422,7 +423,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 builder: (context, snap) => _SummaryCard(
                                   icon: Icons.sync,
                                   count: '${snap.data ?? 0}',
-                                  label: 'Pending\nSync',
+                                  label: 'Offline\nSync',
                                 ),
                               ),
                             ),
@@ -758,14 +759,18 @@ class _RecentScanCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   '${item.gtin}  •  $timeAgo',
-                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                  maxLines: 2,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey,
+                  ),
                 ),
               ],
             ),
           ),
           _StatusBadge(status: item.status as String),
           const SizedBox(width: 6),
-          const Icon(Icons.chevron_right, color: Color(0xff0B7285), size: 18),
+          // const Icon(Icons.chevron_right, color: Color(0xff0B7285), size: 18),
         ],
       ),
     );

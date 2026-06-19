@@ -4,146 +4,227 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-const _fcmTokenKey = 'fcm_token';
+//--------------------------- Firebase FCM Configs -------------------------------------
+// FirebaseDatabase getFeedbackFirebaseDB() {
+//   return FirebaseDatabase(app: Firebase.app('db3'));
+// }
 
-const AndroidNotificationChannel _channel = AndroidNotificationChannel(
-  'high_importance_channel',
-  'High Importance Notifications',
-  description: 'This channel is used for important notifications.',
+String fcmToken = "";
+
+Future<void> initFirebase() async {
+  // print(FirebaseDatabase.instance.app);
+  try {
+    await _getFeedbackFirebaseConfig();
+
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+    //setting up platform specific local notification package implementation.
+    await _platformSpecificLocalNotification();
+
+    /// Update the iOS foreground notification presentation options to allow
+    /// heads up notifications.
+    await FirebaseMessaging.instance
+        .setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    //requesting permissions for ios and caching apn.
+    _requestIOSPermission();
+    //getting FCM token And caching it.
+    _grabTokenAndCache();
+  } catch (e) {
+    debugPrint("Error Occurred while initializing FIREBASE:: $e");
+  }
+}
+
+Future<void> _platformSpecificLocalNotification() async {
+  await flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(channel);
+
+  if (Platform.isIOS) {
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin>()
+        ?.requestPermissions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+  }
+}
+
+_requestIOSPermission() {
+  if (Platform.isIOS) {
+    FirebaseMessaging.instance
+        .requestPermission(sound: true, badge: true, alert: true);
+    FirebaseMessaging.instance.getAPNSToken().then((apnToken) {
+      if (apnToken != null) {
+        // PrefController()
+        //     .setIosAPNToken(apnToken)
+        //     .then((v) => debugPrint("APN TOKEN Cached :-> $apnToken"));
+      }
+      debugPrint("APN TOKEN FOUND: $apnToken");
+    });
+  }
+}
+
+_grabTokenAndCache() {
+  FirebaseMessaging.instance.getToken().then((value) {
+    if (value != null) {
+      fcmToken = value;
+      // setFcmToken(value);
+      // PrefController()
+      //     .setFCMToken(value)
+      //     .then((v) => debugPrint("Cached Token :-> $value"));
+      debugPrint("FCM TOKEN $value");
+    }
+  });
+}
+
+setFcmToken(String fcmtoken) async {
+  // await AppPrefrence.setString(PrefKeys.fcmToken, fcmtoken);
+}
+
+Future<FirebaseApp> _getFeedbackFirebaseConfig() async {
+  return await Firebase.initializeApp(
+      // name: 'db3',
+      // options: Platform.isIOS
+      //     ? const FirebaseOptions(
+      //     appId: '',
+      //
+      //     apiKey: "",
+      //     messagingSenderId: '',
+      //
+      //     databaseURL:'',
+      //     projectId: "")
+      //     : const FirebaseOptions(
+      //
+      //     appId: '',
+      //     apiKey: "",
+      //     databaseURL: '',
+      //     projectId: "",
+      //     messagingSenderId: '')
+      );
+} //Firebase.app("db3");
+
+//--------------------- Firebase Messaging configurations ----------------------
+
+//
+// initialize the Notification channel for android, this will help in receiving notification
+// this is going to be a top-level initialization(i.e. global)
+
+//MUST BE TOP-LEVEL
+const AndroidNotificationChannel channel = AndroidNotificationChannel(
+  'high_importance_channel', // id
+  'High Importance Notifications', // title
+  description:
+      'This channel is used for important notifications.', // description
   importance: Importance.high,
 );
 
-final FlutterLocalNotificationsPlugin _localNotifications =
+//initialize our flutter local notifications plugin, this is also a top level initialization
+//MUST BE TOP-LEVEL
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
-@pragma('vm:entry-point')
+/// Define a top-level named handler which background/terminated messages will
+/// call.
+///
+/// To verify things are working, check out the native platform logs.
+///MUST BE TOP-LEVEL
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
-  debugPrint('Background message: ${message.messageId} | data: ${message.data}');
+  // await _getFeedbackFirebaseConfig();
+  // If you're going to use other Firebase services in the background, such as Firestore,
+  // make sure you call `initializeApp` before using other Firebase services.
+  print(
+      'Handling a background message ${message.messageId} and message is: ${message.data}');
+
+  //temp.
+  // _buildNotificationPopUp(message);
 }
 
-class FcmService {
-  final SharedPreferences _prefs;
-  final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+//****** Setting listeners for firebase and flutter local notification initialization - context is needed. ********************
+void setupFCMListeners(BuildContext context) {
+  //--------Initializing Flutter local notification for Android-----------------
+  var initializationSettingsAndroid =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
 
-  FcmService(this._prefs);
+  //******************** Initializing local Notification for IOS ***************
+  // final IOSInitializationSettings initializationSettingsIOS = IOSInitializationSettings(
+  //     requestAlertPermission: false,
+  //     requestBadgePermission: false,
+  //     requestSoundPermission: false,
+  //     onDidReceiveLocalNotification: (int id, String? title, String? body, String? payload) async {});
+  // var initializationSettings = InitializationSettings(android: initializationSettingsAndroid, iOS: initializationSettingsIOS);
+  // flutterLocalNotificationsPlugin.initialize(initializationSettings);
 
-  Future<void> initialize() async {
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  // FirebaseMessaging.instance.getInitialMessage().then((RemoteMessage? message) {
+  //   if (message != null) {
+  //     final rs = RouteManager.getFCMRS(FCMArgs(message, true));
+  //     Navigator.pushNamed(context, rs.name!, arguments: rs.arguments);
+  //   }
+  // });
 
-    // Create Android notification channel
-    await _localNotifications
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(_channel);
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    print("MESSAGE RECEIVED IN FG: ${message.messageId}");
+    _buildNotificationPopUp(message);
+  });
 
-    // iOS local notification permissions
-    if (Platform.isIOS) {
-      await _localNotifications
-          .resolvePlatformSpecificImplementation<
-              IOSFlutterLocalNotificationsPlugin>()
-          ?.requestPermissions(alert: true, badge: true, sound: true);
+  FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+    print('A new onMessageOpenedApp event was published!');
+    // navigatorKey.currentState!.pushNamed(AppRoutes.fcmMsg, arguments: message);
+    // Navigator.pushNamed(navigatorKey.currentContext, AppRoutes.fcmMsg,
+    //     arguments: message);
+  });
+
+  FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+    print('A new onMessageOpenedApp event was published!');
+    RemoteNotification? notification = message.notification;
+    AndroidNotification? android = message.notification?.android;
+    if (notification != null && android != null) {
+      showDialog(
+          context: context,
+          builder: (_) {
+            return AlertDialog(
+              title: Text(notification.title ?? "N/A Title"),
+              content: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [Text(notification.body ?? "NA Body")],
+                ),
+              ),
+            );
+          });
     }
+  });
+}
 
-    // Initialize local notifications plugin
-    await _localNotifications.initialize(
-      const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/launcher_icon'),
-      ),
-    );
-
-    // iOS foreground presentation options
-    await _messaging.setForegroundNotificationPresentationOptions(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
-
-    // Request FCM permission (iOS + Android 13+)
-    await _messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
-
-    // iOS APN token
-    if (Platform.isIOS) {
-      final apn = await _messaging.getAPNSToken();
-      debugPrint('APN TOKEN: $apn');
-    }
-
-    // FCM token
-    await _refreshToken();
-    _messaging.onTokenRefresh.listen(_persistToken);
-
-    // Foreground message — show local notification
-    FirebaseMessaging.onMessage.listen(_onForegroundMessage);
-
-    // Tapped while app was in background
-    FirebaseMessaging.onMessageOpenedApp.listen(_onNotificationOpened);
-
-    // Tapped while app was terminated
-    final initial = await _messaging.getInitialMessage();
-    if (initial != null) _onNotificationOpened(initial);
-  }
-
-  String? getToken() => _prefs.getString(_fcmTokenKey);
-
-  Future<void> _refreshToken() async {
-    final token = await _messaging.getToken();
-    if (token != null) await _persistToken(token);
-  }
-
-  Future<void> _persistToken(String token) async {
-    await _prefs.setString(_fcmTokenKey, token);
-    debugPrint('FCM TOKEN: $token');
-  }
-
-  void _onForegroundMessage(RemoteMessage message) {
-    debugPrint('FG message: ${message.messageId}');
-    final notification = message.notification;
-    final android = message.notification?.android;
-    if (notification == null || android == null) return;
-
-    _localNotifications.show(
-      notification.hashCode,
-      notification.title,
-      notification.body,
-      NotificationDetails(
-        android: AndroidNotificationDetails(
-          _channel.id,
-          _channel.name,
-          channelDescription: _channel.description,
-          color: const Color(0xff0C6170),
-          playSound: true,
-          icon: '@mipmap/launcher_icon',
-        ),
-      ),
-    );
-  }
-
-  void _onNotificationOpened(RemoteMessage message) {
-    final notification = message.notification;
-    if (notification == null) return;
-
-    final ctx = navigatorKey.currentContext;
-    if (ctx == null) return;
-
-    showDialog(
-      context: ctx,
-      builder: (dialogCtx) => AlertDialog(
-        title: Text(notification.title ?? ''),
-        content: Text(notification.body ?? ''),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('OK'),
+void _buildNotificationPopUp(RemoteMessage message) {
+  RemoteNotification? notification = message.notification;
+  AndroidNotification? android = message.notification?.android;
+  if (notification != null && android != null) {
+    print("Notification Condition Passed ");
+    flutterLocalNotificationsPlugin.show(
+        notification.hashCode,
+        notification.title,
+        notification.body,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            channel.id,
+            channel.name,
+            channelDescription: channel.description,
+            color: Colors.blue,
+            playSound: true,
+            icon: '@mipmap/ic_launcher',
           ),
-        ],
-      ),
-    );
+        ));
+  } else {
+    print("Notification Condition Failed ");
   }
 }
 

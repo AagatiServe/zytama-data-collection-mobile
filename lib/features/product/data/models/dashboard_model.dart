@@ -21,14 +21,16 @@ class DashboardItemModel {
 
   factory DashboardItemModel.fromJson(Map<String, dynamic> json) {
     return DashboardItemModel(
-      submissionId: json['submission_id'] as String,
-      gtin: json['gtin'] as String,
+      submissionId: (json['submission_id'] as String?) ?? '',
+      gtin: (json['gtin'] as String?) ?? '',
       frontUrl: json['front_url'] as String?,
       productName: json['product_name'] as String?,
       brandName: json['brand_name'] as String?,
       category: json['category'] as String?,
-      status: json['status'] as String,
-      captureTime: DateTime.parse(json['capture_time'] as String),
+      status: (json['status'] as String?) ?? 'failed',
+      captureTime: json['capture_time'] != null
+          ? DateTime.parse(json['capture_time'] as String)
+          : DateTime.now(),
     );
   }
 }

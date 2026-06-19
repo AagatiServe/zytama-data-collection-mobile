@@ -107,9 +107,9 @@ class SyncService {
       final ingredientsFile = File(record.ingredientsImagePath);
       final nutritionFile = File(record.nutritionImagePath);
 
-      if (!productFile.existsSync() ||
-          !ingredientsFile.existsSync() ||
-          !nutritionFile.existsSync()) {
+      if (!await productFile.exists() ||
+          !await ingredientsFile.exists() ||
+          !await nutritionFile.exists()) {
         await _markSyncedAndDelete(record);
         return true;
       }
@@ -130,16 +130,18 @@ class SyncService {
 
   Future<void> _markSyncedAndDelete(PendingUpload record) async {
     await _db.markAsSynced(record.id);
-    _tryDelete(record.productImagePath);
-    _tryDelete(record.ingredientsImagePath);
-    _tryDelete(record.nutritionImagePath);
+    await Future.wait([
+      _tryDelete(record.productImagePath),
+      _tryDelete(record.ingredientsImagePath),
+      _tryDelete(record.nutritionImagePath),
+    ]);
     await _db.deletePendingUpload(record.id);
   }
 
-  void _tryDelete(String path) {
+  Future<void> _tryDelete(String path) async {
     try {
       final file = File(path);
-      if (file.existsSync()) file.deleteSync();
+      if (await file.exists()) await file.delete();
     } catch (_) {}
   }
 

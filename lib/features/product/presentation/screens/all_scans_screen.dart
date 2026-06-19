@@ -37,6 +37,7 @@ class _AllScansViewState extends State<_AllScansView> {
     ('review_pending', 'Pending', Icons.schedule_rounded),
     ('approved', 'Approved', Icons.check_circle_outline),
     ('not_approved', 'Rejected', Icons.cancel_outlined),
+    ('failed', 'Failed', Icons.error_outline_rounded),
   ];
 
   @override

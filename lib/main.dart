@@ -16,6 +16,8 @@ import 'features/auth/presentation/screens/splash_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  await initFirebase();
+
   await di.init();
   // await di.sl<FcmService>().initialize();
   runApp(const App());
@@ -201,8 +203,8 @@ class _ConnectivityWrapperState extends State<_ConnectivityWrapper> {
 
   @override
   Widget build(BuildContext context) {
-    final syncing = _currentSync != null &&
-        _currentSync!.status == SyncStatus.syncing;
+    final syncing =
+        _currentSync != null && _currentSync!.status == SyncStatus.syncing;
 
     return Stack(
       children: [
@@ -246,8 +248,7 @@ class _ConnectivityWrapperState extends State<_ConnectivityWrapper> {
                             borderRadius: BorderRadius.circular(4),
                             child: LinearProgressIndicator(
                               value: _currentSync!.total > 0
-                                  ? _currentSync!.synced /
-                                      _currentSync!.total
+                                  ? _currentSync!.synced / _currentSync!.total
                                   : 0,
                               backgroundColor: Colors.white24,
                               valueColor: const AlwaysStoppedAnimation<Color>(

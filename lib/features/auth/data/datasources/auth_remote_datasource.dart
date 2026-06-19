@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zytama_data/core/notifications/fcm_service.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/network/api_client.dart';
 import '../models/auth_model.dart';
@@ -35,13 +36,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       final response = await apiClient.post(
         ApiConstants.loginEndpoint,
         data: {
-          'email': email,
+          'email': email.toLowerCase(),
           'password': password,
           'device_id': _getOrCreateDeviceId(),
           'app_version': '1.2.0',
           'client_app': 'data_collection',
-          if (prefs.getString('fcm_token') != null)
-            'fcm_token': prefs.getString('fcm_token'),
+          'fcm_token': fcmToken,
         },
       );
       final body = response.data as Map<String, dynamic>;
@@ -51,9 +51,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       return AuthModel.fromJson(body, email: email);
     } on DioException catch (e) {
       final body = e.response?.data;
-      final msg = (body is Map ? body['message'] : null) ??
-          e.message ??
-          'Login failed';
+      final msg =
+          (body is Map ? body['message'] : null) ?? e.message ?? 'Login failed';
       throw Exception(msg);
     }
   }

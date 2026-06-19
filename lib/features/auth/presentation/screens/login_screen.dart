@@ -280,26 +280,31 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       SizedBox(height: size.height * 0.028),
-                      GestureDetector(
-                        onTap: () => _showContactDialog(context),
-                        child: RichText(
-                          text: const TextSpan(
-                            style: TextStyle(fontSize: 13),
-                            children: [
-                              TextSpan(
-                                text: "Don't have an account? ",
-                                style: TextStyle(color: AppColors.primary),
-                              ),
-                              TextSpan(
-                                text: 'Contact Administrator',
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.bold,
-                                  decoration: TextDecoration.underline,
+                      Text.rich(
+                        TextSpan(
+                          style: const TextStyle(fontSize: 13),
+                          children: [
+                            const TextSpan(
+                              text: "Don't have an account? ",
+                              style: TextStyle(color: AppColors.primary),
+                            ),
+                            WidgetSpan(
+                              alignment: PlaceholderAlignment.baseline,
+                              baseline: TextBaseline.alphabetic,
+                              child: GestureDetector(
+                                onTap: () => _showContactDialog(context),
+                                child: const Text(
+                                  'Contact Administrator',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                    decoration: TextDecoration.underline,
+                                  ),
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
                       SizedBox(height: size.height * 0.012),
@@ -406,22 +411,22 @@ class _LoginScreenState extends State<LoginScreen> {
             child: const Text('Close',
                 style: TextStyle(color: AppColors.textLight)),
           ),
-          ElevatedButton.icon(
-            onPressed: () async {
-              Navigator.of(context).pop();
-              final uri = Uri.parse('https://www.zytama.com');
-              if (await canLaunchUrl(uri)) launchUrl(uri);
-            },
-            icon: const Icon(Icons.open_in_browser_rounded, size: 16),
-            label: const Text('Open Web Portal'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-              elevation: 0,
-            ),
-          ),
+          // ElevatedButton.icon(
+          //   onPressed: () async {
+          //     Navigator.of(context).pop();
+          //     final uri = Uri.parse('https://www.zytama.com');
+          //     if (await canLaunchUrl(uri)) launchUrl(uri);
+          //   },
+          //   icon: const Icon(Icons.open_in_browser_rounded, size: 16),
+          //   label: const Text('Open Web Portal'),
+          //   style: ElevatedButton.styleFrom(
+          //     backgroundColor: AppColors.primary,
+          //     foregroundColor: Colors.white,
+          //     shape: RoundedRectangleBorder(
+          //         borderRadius: BorderRadius.circular(10)),
+          //     elevation: 0,
+          //   ),
+          // ),
         ],
       ),
     );
