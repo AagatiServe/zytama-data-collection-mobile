@@ -1,3 +1,4 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../product/data/models/dashboard_model.dart';
 import '../../domain/usecases/get_dashboard_usecase.dart';
@@ -8,10 +9,7 @@ part 'dashboard_state.dart';
 class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
   final GetDashboardUseCase _useCase;
 
-  String? _nextCursor;
-  final List<DashboardItemModel> _items = [];
-
-  DashboardBloc(this._useCase) : super(DashboardInitial()) {
+  DashboardBloc(this._useCase) : super(const DashboardInitial()) {
     on<DashboardLoadRequested>(_onLoad);
     on<DashboardLoadMoreRequested>(_onLoadMore);
     on<DashboardRefreshRequested>(_onRefresh);
@@ -22,59 +20,50 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     DashboardLoadRequested event,
     Emitter<DashboardState> emit,
   ) async {
-    _nextCursor = null;
-    _items.clear();
-    emit(DashboardLoading());
-    try {
-      final page = await _useCase(
-        search: event.search,
-        status: event.statusFilter,
-      );
-      _items.addAll(page.items);
-      _nextCursor = page.nextCursor;
-      emit(DashboardLoaded(
+    emit(const DashboardLoading());
+    final result = await _useCase(
+      search: event.search,
+      status: event.statusFilter,
+    );
+    result.fold(
+      (failure) => emit(DashboardError(failure.message)),
+      (page) => emit(DashboardLoaded(
         totalProducts: page.totalProducts,
         successfulCaptures: page.successfulCaptures,
         reviewPending: page.reviewPending,
-        items: List.unmodifiable(_items),
-        nextCursor: _nextCursor,
+        items: List.unmodifiable(page.items),
+        nextCursor: page.nextCursor,
         currentSearch: event.search,
         currentStatusFilter: event.statusFilter,
-      ));
-    } catch (e) {
-      emit(DashboardError(e.toString().replaceAll('Exception: ', '')));
-    }
+      )),
+    );
   }
 
   Future<void> _onLoadMore(
     DashboardLoadMoreRequested event,
     Emitter<DashboardState> emit,
   ) async {
-    if (_nextCursor == null) return;
     final current = state;
-    if (current is! DashboardLoaded) return;
+    if (current is! DashboardLoaded || current.nextCursor == null) return;
 
     emit(current.copyWith(isLoadingMore: true));
-    try {
-      final page = await _useCase(
-        cursor: _nextCursor,
-        search: current.currentSearch,
-        status: current.currentStatusFilter,
-      );
-      _items.addAll(page.items);
-      _nextCursor = page.nextCursor;
-      emit(current.copyWith(
-        items: List.unmodifiable(_items),
-        nextCursor: _nextCursor,
-        clearCursor: _nextCursor == null,
+    final result = await _useCase(
+      cursor: current.nextCursor,
+      search: current.currentSearch,
+      status: current.currentStatusFilter,
+    );
+    result.fold(
+      (_) => emit(current.copyWith(isLoadingMore: false)),
+      (page) => emit(current.copyWith(
+        items: List.unmodifiable([...current.items, ...page.items]),
+        nextCursor: page.nextCursor,
+        clearCursor: page.nextCursor == null,
         isLoadingMore: false,
         totalProducts: page.totalProducts,
         successfulCaptures: page.successfulCaptures,
         reviewPending: page.reviewPending,
-      ));
-    } catch (e) {
-      emit(current.copyWith(isLoadingMore: false));
-    }
+      )),
+    );
   }
 
   Future<void> _onRefresh(

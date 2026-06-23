@@ -10,7 +10,8 @@ class BarcodeScannerScreen extends StatefulWidget {
   State<BarcodeScannerScreen> createState() => _BarcodeScannerScreenState();
 }
 
-class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
+class _BarcodeScannerScreenState extends State<BarcodeScannerScreen>
+    with WidgetsBindingObserver {
   MobileScannerController? _controller;
   bool _hasScanned = false;
   bool _isVerifying = false;
@@ -19,6 +20,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initCamera();
   }
 
@@ -34,7 +36,19 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_controller == null) return;
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      _controller?.stop();
+    } else if (state == AppLifecycleState.resumed) {
+      _controller?.start();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controller?.dispose();
     super.dispose();
   }
@@ -45,7 +59,13 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
     if (value == null || value.isEmpty) return;
     _hasScanned = true;
     setState(() => _isVerifying = true);
-    await Future.delayed(const Duration(milliseconds: 600));
+    await Future.delayed(const Duration(milliseconds: 400));
+    // Stop and dispose the scanner before popping so the camera hardware
+    // is released before the next screen tries to use it.
+    await _controller?.stop();
+    _controller?.dispose();
+    _controller = null;
+    await Future.delayed(const Duration(milliseconds: 200));
     if (mounted) Navigator.of(context).pop(value);
   }
 

@@ -1,7 +1,10 @@
 part of 'notification_bloc.dart';
 
-abstract class NotificationState {
+abstract class NotificationState extends Equatable {
   const NotificationState();
+
+  @override
+  List<Object?> get props => [];
 }
 
 class NotificationInitial extends NotificationState {
@@ -42,9 +45,16 @@ class NotificationLoaded extends NotificationState {
       loadMoreError: loadMoreError,
     );
   }
+
+  @override
+  List<Object?> get props =>
+      [items, nextCursor, unreadCount, isLoadingMore, loadMoreError];
 }
 
 class NotificationError extends NotificationState {
   final String message;
   const NotificationError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }

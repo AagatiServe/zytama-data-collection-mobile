@@ -1,3 +1,4 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/usecases/login_usecase.dart';
@@ -13,7 +14,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final SyncService syncService;
 
   AuthBloc(this.loginUseCase, this.authRepository, this.syncService)
-      : super(AuthInitial()) {
+      : super(const AuthInitial()) {
     on<CheckAuthStatus>(_onCheckAuthStatus);
     on<LoginRequested>(_onLoginRequested);
     on<LogoutRequested>(_onLogoutRequested);
@@ -23,7 +24,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     CheckAuthStatus event,
     Emitter<AuthState> emit,
   ) async {
-    emit(AuthLoading());
+    emit(const AuthLoading());
     final loggedIn = await authRepository.isLoggedIn();
     if (loggedIn) {
       final user = await authRepository.getStoredUser();
@@ -32,7 +33,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         user ?? const UserEntity(email: '', name: '', token: ''),
       ));
     } else {
-      emit(AuthUnauthenticated());
+      emit(const AuthUnauthenticated());
     }
   }
 
@@ -40,14 +41,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     LoginRequested event,
     Emitter<AuthState> emit,
   ) async {
-    emit(AuthLoading());
-    try {
-      final user = await loginUseCase(event.email, event.password);
-      syncService.startListening();
-      emit(AuthAuthenticated(user));
-    } catch (e) {
-      emit(AuthError(e.toString().replaceAll('Exception: ', '')));
-    }
+    emit(const AuthLoading());
+    final result = await loginUseCase(event.email, event.password);
+    result.fold(
+      (failure) => emit(AuthError(failure.message)),
+      (user) {
+        syncService.startListening();
+        emit(AuthAuthenticated(user));
+      },
+    );
   }
 
   Future<void> _onLogoutRequested(
@@ -56,6 +58,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     syncService.stop();
     await authRepository.logout();
-    emit(AuthUnauthenticated());
+    emit(const AuthUnauthenticated());
   }
 }

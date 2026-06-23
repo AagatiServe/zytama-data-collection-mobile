@@ -1,5 +1,8 @@
+import 'package:dartz/dartz.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/errors/exceptions.dart';
+import '../../../../core/errors/failures.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_remote_datasource.dart';
@@ -11,18 +14,26 @@ class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl(this.remoteDataSource, this.prefs);
 
   @override
-  Future<UserEntity> login(String email, String password) async {
-    final model = await remoteDataSource.login(email, password);
-    await prefs.setString(AppConstants.tokenKey, model.token);
-    await prefs.setString(AppConstants.userNameKey, model.name);
-    await prefs.setString(AppConstants.userEmailKey, model.email);
-    await prefs.setString(AppConstants.agentCodeKey, model.agentCode);
-    return UserEntity(
-      email: model.email,
-      name: model.name,
-      token: model.token,
-      agentCode: model.agentCode,
-    );
+  Future<Either<Failure, UserEntity>> login(String email, String password) async {
+    try {
+      final model = await remoteDataSource.login(email, password);
+      await prefs.setString(AppConstants.tokenKey, model.token);
+      await prefs.setString(AppConstants.userNameKey, model.name);
+      await prefs.setString(AppConstants.userEmailKey, model.email);
+      await prefs.setString(AppConstants.agentCodeKey, model.agentCode);
+      return Right(UserEntity(
+        email: model.email,
+        name: model.name,
+        token: model.token,
+        agentCode: model.agentCode,
+      ));
+    } on AuthException catch (e) {
+      return Left(AuthFailure(e.message));
+    } on NetworkException catch (e) {
+      return Left(NetworkFailure(e.message));
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    }
   }
 
   @override

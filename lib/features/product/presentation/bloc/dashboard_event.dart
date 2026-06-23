@@ -1,19 +1,34 @@
 part of 'dashboard_bloc.dart';
 
-abstract class DashboardEvent {}
+abstract class DashboardEvent extends Equatable {
+  const DashboardEvent();
+
+  @override
+  List<Object?> get props => [];
+}
 
 class DashboardLoadRequested extends DashboardEvent {
   final String? search;
   final String? statusFilter;
-  DashboardLoadRequested({this.search, this.statusFilter});
+  const DashboardLoadRequested({this.search, this.statusFilter});
+
+  @override
+  List<Object?> get props => [search, statusFilter];
 }
 
-class DashboardLoadMoreRequested extends DashboardEvent {}
+class DashboardLoadMoreRequested extends DashboardEvent {
+  const DashboardLoadMoreRequested();
+}
 
 class DashboardRefreshRequested extends DashboardEvent {
   final String? search;
   final String? statusFilter;
-  DashboardRefreshRequested({this.search, this.statusFilter});
+  const DashboardRefreshRequested({this.search, this.statusFilter});
+
+  @override
+  List<Object?> get props => [search, statusFilter];
 }
 
-class DashboardLocalIncrementRequested extends DashboardEvent {}
+class DashboardLocalIncrementRequested extends DashboardEvent {
+  const DashboardLocalIncrementRequested();
+}

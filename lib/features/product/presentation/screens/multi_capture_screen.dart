@@ -25,7 +25,8 @@ class MultiCaptureScreen extends StatefulWidget {
   State<MultiCaptureScreen> createState() => _MultiCaptureScreenState();
 }
 
-class _MultiCaptureScreenState extends State<MultiCaptureScreen> {
+class _MultiCaptureScreenState extends State<MultiCaptureScreen>
+    with WidgetsBindingObserver {
   static const _steps = [
     _StepConfig(
       label: 'Product Photo',
@@ -54,25 +55,59 @@ class _MultiCaptureScreenState extends State<MultiCaptureScreen> {
   bool _flash = false;
   Timer? _sheetTimer;
   bool _sheetOpen = false;
+  CameraDescription? _rearCamera;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initCamera();
   }
 
   Future<void> _initCamera() async {
+    // Brief delay to let the previous scanner fully release the camera hardware
+    await Future.delayed(const Duration(milliseconds: 300));
+    if (!mounted) return;
     final cameras = await availableCameras();
     if (cameras.isEmpty || !mounted) return;
-    final rear = cameras.firstWhere(
+    _rearCamera = cameras.firstWhere(
       (c) => c.lensDirection == CameraLensDirection.back,
       orElse: () => cameras.first,
     );
-    _ctrl = CameraController(rear, ResolutionPreset.high, enableAudio: false);
-    await _ctrl!.initialize();
-    if (mounted) {
-      setState(() {});
+    await _startController();
+    if (mounted && _ctrl?.value.isInitialized == true) {
       _showStepSheet();
+    }
+  }
+
+  Future<void> _startController() async {
+    if (_rearCamera == null || !mounted) return;
+    _ctrl = CameraController(_rearCamera!, ResolutionPreset.high,
+        enableAudio: false);
+    try {
+      await _ctrl!.initialize();
+    } catch (_) {
+      // Camera init can fail if hardware is still releasing; retry once
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (!mounted) return;
+      try {
+        await _ctrl!.initialize();
+      } catch (_) {}
+    }
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final ctrl = _ctrl;
+    if (ctrl == null || !ctrl.value.isInitialized) return;
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      ctrl.dispose();
+      _ctrl = null;
+      if (mounted) setState(() {});
+    } else if (state == AppLifecycleState.resumed) {
+      _startController();
     }
   }
 
@@ -108,11 +143,14 @@ class _MultiCaptureScreenState extends State<MultiCaptureScreen> {
     _ctrl = null;
     if (mounted) setState(() {});
     await ctrl?.dispose();
+    // Let the camera hardware fully release before popping
+    await Future.delayed(const Duration(milliseconds: 200));
     if (mounted) Navigator.of(context).pop(null);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _sheetTimer?.cancel();
     _ctrl?.dispose();
     super.dispose();
@@ -140,7 +178,12 @@ class _MultiCaptureScreenState extends State<MultiCaptureScreen> {
       });
       _showStepSheet();
     } else {
-      Navigator.of(context).pop(_captured);
+      final ctrl = _ctrl;
+      _ctrl = null;
+      setState(() {});
+      await ctrl?.dispose();
+      await Future.delayed(const Duration(milliseconds: 200));
+      if (mounted) Navigator.of(context).pop(_captured);
     }
   }
 

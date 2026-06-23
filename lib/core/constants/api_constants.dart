@@ -7,6 +7,6 @@ class ApiConstants {
   static const String uploadProductEndpoint = 'products/upload-file';
   static const String dashboardEndpoint = 'agents/dashboard';
   static const String notificationsEndpoint = 'notifications';
-  static const int connectTimeoutMs = 30000;
-  static const int receiveTimeoutMs = 30000;
+  static const int connectTimeoutMs = 120;
+  static const int receiveTimeoutMs = 120;
 }

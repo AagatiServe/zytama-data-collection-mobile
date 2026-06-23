@@ -22,6 +22,12 @@ dependencies:
   # Local storage
   shared_preferences: ^2.3.2
 
+  # Functional programming (Either type)
+  dartz: ^0.10.1
+
+  # Value equality
+  equatable: ^2.0.7
+
   # Dependency injection
   get_it: ^8.0.3
 

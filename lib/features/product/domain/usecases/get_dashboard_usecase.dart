@@ -1,3 +1,5 @@
+import 'package:dartz/dartz.dart';
+import '../../../../core/errors/failures.dart';
 import '../../data/models/dashboard_model.dart';
 import '../repositories/dashboard_repository.dart';
 
@@ -5,7 +7,7 @@ class GetDashboardUseCase {
   final DashboardRepository _repo;
   GetDashboardUseCase(this._repo);
 
-  Future<DashboardPageModel> call({
+  Future<Either<Failure, DashboardPageModel>> call({
     int limit = 20,
     String? cursor,
     String? search,

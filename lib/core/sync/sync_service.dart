@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import '../local/app_database.dart';
 import '../network/connectivity_service.dart';
 import '../../features/product/data/datasources/product_remote_datasource.dart';
@@ -110,6 +111,7 @@ class SyncService {
       if (!await productFile.exists() ||
           !await ingredientsFile.exists() ||
           !await nutritionFile.exists()) {
+        debugPrint('[SyncService] Missing image files for barcode=${record.barcode}, skipping');
         await _markSyncedAndDelete(record);
         return true;
       }
@@ -123,7 +125,8 @@ class SyncService {
 
       await _markSyncedAndDelete(record);
       return true;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[SyncService] Failed to sync barcode=${record.barcode}: $e');
       return false;
     }
   }
@@ -142,7 +145,9 @@ class SyncService {
     try {
       final file = File(path);
       if (await file.exists()) await file.delete();
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[SyncService] Failed to delete file $path: $e');
+    }
   }
 
   void dispose() {

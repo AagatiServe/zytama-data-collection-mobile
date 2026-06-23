@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
 import '../../../../core/constants/api_constants.dart';
+import '../../../../core/errors/exceptions.dart';
 import '../../../../core/network/api_client.dart';
 import '../models/product_model.dart';
 
@@ -31,7 +32,12 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
       final msg = (body is Map ? body['message'] : null) ??
           e.message ??
           'Barcode check failed';
-      throw Exception(msg);
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout ||
+          e.type == DioExceptionType.connectionError) {
+        throw NetworkException(msg);
+      }
+      throw ServerException(msg, statusCode: e.response?.statusCode);
     }
   }
 
@@ -65,7 +71,7 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
       );
       final body = response.data as Map<String, dynamic>;
       if (body['success'] != true) {
-        throw Exception(body['message'] ?? 'Upload failed');
+        throw ServerException(body['message'] ?? 'Upload failed');
       }
       return UploadResponseModel.fromJson(body);
     } on DioException catch (e) {
@@ -73,7 +79,12 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
       final msg = (body is Map ? body['message'] : null) ??
           e.message ??
           'Upload failed';
-      throw Exception(msg);
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout ||
+          e.type == DioExceptionType.connectionError) {
+        throw NetworkException(msg);
+      }
+      throw ServerException(msg, statusCode: e.response?.statusCode);
     }
   }
 }

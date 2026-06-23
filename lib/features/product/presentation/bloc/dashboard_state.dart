@@ -1,10 +1,19 @@
 part of 'dashboard_bloc.dart';
 
-abstract class DashboardState {}
+abstract class DashboardState extends Equatable {
+  const DashboardState();
 
-class DashboardInitial extends DashboardState {}
+  @override
+  List<Object?> get props => [];
+}
 
-class DashboardLoading extends DashboardState {}
+class DashboardInitial extends DashboardState {
+  const DashboardInitial();
+}
+
+class DashboardLoading extends DashboardState {
+  const DashboardLoading();
+}
 
 class DashboardLoaded extends DashboardState {
   final int totalProducts;
@@ -16,7 +25,7 @@ class DashboardLoaded extends DashboardState {
   final String? currentSearch;
   final String? currentStatusFilter;
 
-  DashboardLoaded({
+  const DashboardLoaded({
     required this.totalProducts,
     required this.successfulCaptures,
     required this.reviewPending,
@@ -51,9 +60,24 @@ class DashboardLoaded extends DashboardState {
       currentStatusFilter: currentStatusFilter ?? this.currentStatusFilter,
     );
   }
+
+  @override
+  List<Object?> get props => [
+        totalProducts,
+        successfulCaptures,
+        reviewPending,
+        items,
+        nextCursor,
+        isLoadingMore,
+        currentSearch,
+        currentStatusFilter,
+      ];
 }
 
 class DashboardError extends DashboardState {
   final String message;
-  DashboardError(this.message);
+  const DashboardError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }

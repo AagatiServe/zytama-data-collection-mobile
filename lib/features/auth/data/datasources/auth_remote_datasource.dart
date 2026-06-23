@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zytama_data/core/notifications/fcm_service.dart';
 import '../../../../core/constants/api_constants.dart';
+import '../../../../core/errors/exceptions.dart';
 import '../../../../core/network/api_client.dart';
 import '../models/auth_model.dart';
 
@@ -46,14 +47,19 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       );
       final body = response.data as Map<String, dynamic>;
       if (body['success'] != true) {
-        throw Exception(body['message'] ?? 'Login failed');
+        throw AuthException(body['message'] ?? 'Login failed');
       }
       return AuthModel.fromJson(body, email: email);
     } on DioException catch (e) {
       final body = e.response?.data;
       final msg =
           (body is Map ? body['message'] : null) ?? e.message ?? 'Login failed';
-      throw Exception(msg);
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout ||
+          e.type == DioExceptionType.connectionError) {
+        throw NetworkException(msg);
+      }
+      throw ServerException(msg, statusCode: e.response?.statusCode);
     }
   }
 }

@@ -1,7 +1,10 @@
 part of 'notification_bloc.dart';
 
-abstract class NotificationEvent {
+abstract class NotificationEvent extends Equatable {
   const NotificationEvent();
+
+  @override
+  List<Object?> get props => [];
 }
 
 class NotificationLoadRequested extends NotificationEvent {

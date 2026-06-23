@@ -9,12 +9,13 @@ class ApiClient {
   ApiClient(SharedPreferences prefs) {
     _dio = Dio(BaseOptions(
       baseUrl: ApiConstants.baseUrl,
-      connectTimeout: const Duration(milliseconds: ApiConstants.connectTimeoutMs),
-      receiveTimeout: const Duration(milliseconds: ApiConstants.receiveTimeoutMs),
+      connectTimeout: const Duration(seconds: ApiConstants.connectTimeoutMs),
+      receiveTimeout: const Duration(seconds: ApiConstants.receiveTimeoutMs),
       headers: {'Content-Type': 'application/json'},
     ));
     _dio.interceptors.add(_AuthInterceptor(prefs));
-    _dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true));
+    _dio.interceptors
+        .add(LogInterceptor(requestBody: true, responseBody: true));
   }
 
   Future<Response> get(String path, {Map<String, dynamic>? queryParams}) =>
